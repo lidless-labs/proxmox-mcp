@@ -59,5 +59,7 @@ export default definePluginEntry({
     register(tools.createProxmoxRebootResourceTool(getClient));
     register(tools.createProxmoxSnapshotResourceTool(getClient));
     register(tools.createProxmoxRunBackupTool(getClient));
+    register(tools.createProxmoxGetTaskStatusTool(getClient));
+    register(tools.createProxmoxGetTaskLogTool(getClient));
   },
 });

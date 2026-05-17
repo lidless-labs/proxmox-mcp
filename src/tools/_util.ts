@@ -25,3 +25,14 @@ export async function resolveResource(
   }
   return { node: matches[0].node, type: matches[0].type as "lxc" | "qemu" };
 }
+
+export function parseTaskUpid(upid: string): { node: string } {
+  if (typeof upid !== "string" || !upid.startsWith("UPID:")) {
+    throw new Error(`invalid UPID format: ${upid}`);
+  }
+  const parts = upid.split(":");
+  if (parts.length < 8) throw new Error(`invalid UPID format: ${upid}`);
+  const node = parts[1];
+  if (!node) throw new Error(`UPID missing node segment: ${upid}`);
+  return { node };
+}

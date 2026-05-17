@@ -10,3 +10,5 @@ export { createProxmoxStopResourceTool } from "./proxmox_stop_resource.ts";
 export { createProxmoxRebootResourceTool } from "./proxmox_reboot_resource.ts";
 export { createProxmoxSnapshotResourceTool } from "./proxmox_snapshot_resource.ts";
 export { createProxmoxRunBackupTool } from "./proxmox_run_backup.ts";
+export { createProxmoxGetTaskStatusTool } from "./proxmox_get_task_status.ts";
+export { createProxmoxGetTaskLogTool } from "./proxmox_get_task_log.ts";
