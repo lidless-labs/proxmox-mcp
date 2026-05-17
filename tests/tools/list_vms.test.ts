@@ -17,7 +17,7 @@ describe("proxmox_list_vms", () => {
         path: "/api2/json/cluster/resources?type=qemu",
         status: 200,
         body: {
-          data: [{ vmid: 110, name: "secondary-host", node: "pve", status: "running", type: "qemu" }],
+          data: [{ vmid: 110, name: "app-vm", node: "pve", status: "running", type: "qemu" }],
         },
       },
     ]);
@@ -34,6 +34,6 @@ describe("proxmox_list_vms", () => {
     const payload = JSON.parse(r.content[0].text);
     expect(payload.count).toBe(1);
     expect(payload.vms[0].vmid).toBe(110);
-    expect(payload.vms[0].name).toBe("secondary-host");
+    expect(payload.vms[0].name).toBe("app-vm");
   });
 });

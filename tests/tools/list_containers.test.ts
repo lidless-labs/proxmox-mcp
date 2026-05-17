@@ -18,8 +18,8 @@ describe("proxmox_list_containers", () => {
         status: 200,
         body: {
           data: [
-            { vmid: 100, name: "adguard", node: "pve", status: "running", type: "lxc" },
-            { vmid: 105, name: "wazuh", node: "pve", status: "running", type: "lxc" },
+            { vmid: 100, name: "web-svc", node: "pve", status: "running", type: "lxc" },
+            { vmid: 105, name: "db-svc", node: "pve", status: "running", type: "lxc" },
           ],
         },
       },
