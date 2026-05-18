@@ -3,7 +3,9 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { resolveConfig, type ProxmoxConfig } from "./src/config.ts";
 import { ProxmoxClient } from "./src/proxmox-client.ts";
+import { execInLxc, execViaDirectSsh } from "./src/ssh-executor.ts";
 import { registerSecret, redact } from "./src/security.ts";
+import type { SshExecutor } from "./src/tools/_util.ts";
 import * as toolFactories from "./src/tools/index.ts";
 
 const cfg: ProxmoxConfig = resolveConfig(process.env);
@@ -12,6 +14,18 @@ registerSecret(cfg.tokenSecret);
 registerSecret(`PVEAPIToken=${cfg.tokenId}=${cfg.tokenSecret}`);
 
 const getClient = () => new ProxmoxClient(cfg);
+
+const hostCfg = {
+  host: cfg.ssh.host,
+  port: cfg.ssh.port,
+  user: cfg.ssh.user,
+  keyPath: cfg.ssh.keyPath,
+};
+const getSsh = (): SshExecutor => ({
+  execInLxc: (vmid, command, timeoutMs, stdin) => execInLxc(hostCfg, vmid, command, timeoutMs, stdin),
+  execViaDirectSsh: (target, command, timeoutMs, stdin) => execViaDirectSsh(target, command, timeoutMs, stdin),
+});
+const vmDefaults = { vmUser: cfg.ssh.vmUser, vmKeyPath: cfg.ssh.vmKeyPath };
 
 const tools = [
   toolFactories.createProxmoxStatusTool(getClient),
@@ -35,11 +49,14 @@ const tools = [
   toolFactories.createProxmoxDestroyResourceTool(getClient),
   toolFactories.createProxmoxDeleteSnapshotTool(getClient),
   toolFactories.createProxmoxForceStopResourceTool(getClient),
+  toolFactories.createProxmoxExecTool(getClient, getSsh, vmDefaults),
+  toolFactories.createProxmoxReadFileTool(getClient, getSsh, vmDefaults),
+  toolFactories.createProxmoxWriteFileTool(getClient, getSsh, vmDefaults),
 ];
 
 const toolMap = new Map(tools.map((t) => [t.name, t]));
 
-const server = new Server({ name: "proxmox-mcp", version: "0.3.0" }, { capabilities: { tools: {} } });
+const server = new Server({ name: "proxmox-mcp", version: "0.4.0" }, { capabilities: { tools: {} } });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.parameters })),

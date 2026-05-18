@@ -2,14 +2,22 @@ import { describe, it, expect, afterEach } from "vitest";
 import { startFakeProxmox, FakeProxmox } from "./fake-proxmox.ts";
 import { ProxmoxClient } from "../src/proxmox-client.ts";
 import * as toolFactories from "../src/tools/index.ts";
+import type { SshExecutor } from "../src/tools/_util.ts";
 
 let fake: FakeProxmox | null = null;
 afterEach(async () => { if (fake) await fake.close(); fake = null; });
 
+const NOOP_SSH: SshExecutor = {
+  execInLxc: async () => ({ stdout: "", stderr: "", exitCode: 0 }),
+  execViaDirectSsh: async () => ({ stdout: "", stderr: "", exitCode: 0 }),
+};
+const VM_DEFAULTS = { vmUser: "root", vmKeyPath: "/k" };
+
 describe("integration", () => {
-  it("all 12 tools register with unique names", () => {
+  it("all 24 tools register with unique names", () => {
     const dummy = () =>
       new ProxmoxClient({ url: "http://x", tokenId: "u@pam!t", tokenSecret: "s", tlsInsecure: false });
+    const ssh = () => NOOP_SSH;
     const created = [
       toolFactories.createProxmoxStatusTool(dummy),
       toolFactories.createProxmoxListContainersTool(dummy),
@@ -23,10 +31,22 @@ describe("integration", () => {
       toolFactories.createProxmoxRebootResourceTool(dummy),
       toolFactories.createProxmoxSnapshotResourceTool(dummy),
       toolFactories.createProxmoxRunBackupTool(dummy),
+      toolFactories.createProxmoxGetTaskStatusTool(dummy),
+      toolFactories.createProxmoxGetTaskLogTool(dummy),
+      toolFactories.createProxmoxListTemplatesTool(dummy),
+      toolFactories.createProxmoxCreateContainerTool(dummy),
+      toolFactories.createProxmoxCreateVmTool(dummy),
+      toolFactories.createProxmoxCloneResourceTool(dummy),
+      toolFactories.createProxmoxDestroyResourceTool(dummy),
+      toolFactories.createProxmoxDeleteSnapshotTool(dummy),
+      toolFactories.createProxmoxForceStopResourceTool(dummy),
+      toolFactories.createProxmoxExecTool(dummy, ssh, VM_DEFAULTS),
+      toolFactories.createProxmoxReadFileTool(dummy, ssh, VM_DEFAULTS),
+      toolFactories.createProxmoxWriteFileTool(dummy, ssh, VM_DEFAULTS),
     ];
-    expect(created).toHaveLength(12);
+    expect(created).toHaveLength(24);
     const names = created.map((t) => t.name);
-    expect(new Set(names).size).toBe(12);
+    expect(new Set(names).size).toBe(24);
     for (const n of names) expect(n).toMatch(/^proxmox_/);
   });
 

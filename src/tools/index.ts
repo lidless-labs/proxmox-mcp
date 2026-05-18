@@ -19,3 +19,6 @@ export { createProxmoxCloneResourceTool } from "./proxmox_clone_resource.ts";
 export { createProxmoxDestroyResourceTool } from "./proxmox_destroy_resource.ts";
 export { createProxmoxDeleteSnapshotTool } from "./proxmox_delete_snapshot.ts";
 export { createProxmoxForceStopResourceTool } from "./proxmox_force_stop_resource.ts";
+export { createProxmoxExecTool } from "./proxmox_exec.ts";
+export { createProxmoxReadFileTool } from "./proxmox_read_file.ts";
+export { createProxmoxWriteFileTool } from "./proxmox_write_file.ts";
