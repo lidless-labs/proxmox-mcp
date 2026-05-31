@@ -17,6 +17,7 @@ export { createProxmoxListStorageTool } from "./proxmox_list_storage.ts";
 export { createProxmoxListSnapshotsTool } from "./proxmox_list_snapshots.ts";
 export { createProxmoxGuestNetworkTool } from "./proxmox_guest_network.ts";
 export { createProxmoxWaitTaskTool } from "./proxmox_wait_task.ts";
+export { createProxmoxNextVmidTool } from "./proxmox_next_vmid.ts";
 export { createProxmoxCreateContainerTool } from "./proxmox_create_container.ts";
 export { createProxmoxCreateVmTool } from "./proxmox_create_vm.ts";
 export { createProxmoxCloneResourceTool } from "./proxmox_clone_resource.ts";

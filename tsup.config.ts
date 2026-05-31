@@ -8,6 +8,6 @@ export default defineConfig({
   dts: false,
   splitting: false,
   sourcemap: false,
-  external: [/^openclaw(\/|$)/, "undici"],
+  external: [/^openclaw(\/|$)/],
   banner: { js: "#!/usr/bin/env node" },
 });

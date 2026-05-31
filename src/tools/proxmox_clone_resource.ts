@@ -17,6 +17,12 @@ const Schema = Type.Object(
     snapname: Type.Optional(
       Type.String({ minLength: 1, description: "Clone from a named snapshot (optional)." }),
     ),
+    description: Type.Optional(
+      Type.String({ description: "Optional description for the clone." }),
+    ),
+    tags: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional semicolon-delimited Proxmox tags." }),
+    ),
     confirm: Type.Boolean({
       description: "Must be true to write. Tier-2 safe-write gate.",
     }),
@@ -42,6 +48,8 @@ export function createProxmoxCloneResourceTool(getClient: ClientFactory) {
         full?: boolean;
         storage?: string;
         snapname?: string;
+        description?: string;
+        tags?: string;
         confirm: boolean;
       }>(Schema, raw, NAME);
       const client = getClient();
@@ -56,6 +64,12 @@ export function createProxmoxCloneResourceTool(getClient: ClientFactory) {
       }
       if (typeof args.snapname === "string" && args.snapname.length > 0) {
         body.snapname = args.snapname;
+      }
+      if (typeof args.description === "string" && args.description.length > 0) {
+        body.description = args.description;
+      }
+      if (typeof args.tags === "string" && args.tags.length > 0) {
+        body.tags = args.tags;
       }
       const upid = await client.post<string>(
         `/nodes/${node}/${type}/${args.source_vmid}/clone`,

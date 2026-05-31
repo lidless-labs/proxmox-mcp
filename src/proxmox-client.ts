@@ -77,7 +77,7 @@ export class ProxmoxClient {
           const parsed = JSON.parse(text);
           return (parsed && typeof parsed === "object" && "data" in parsed ? parsed.data : parsed) as T;
         }
-        if (res.status >= 500) {
+        if ([502, 503, 504].includes(res.status)) {
           lastErr = new ProxmoxUnreachableError(`HTTP ${res.status}`);
           if (attempt === 0) await sleep(this.retryDelayMs);
           continue;
@@ -119,9 +119,13 @@ function nodeRequest(
 ): Promise<{ status: number; text(): Promise<string> }> {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
+    const requestHeaders = { ...headers };
+    if (body !== undefined && requestHeaders["content-length"] === undefined) {
+      requestHeaders["content-length"] = String(Buffer.byteLength(body, "utf8"));
+    }
     const req = httpsRequest(
       parsed,
-      { method, headers, rejectUnauthorized },
+      { method, headers: requestHeaders, rejectUnauthorized },
       (res) => {
         const chunks: Buffer[] = [];
         res.on("data", (chunk: Buffer) => chunks.push(chunk));

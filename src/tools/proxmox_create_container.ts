@@ -35,6 +35,12 @@ const Schema = Type.Object(
     start: Type.Optional(
       Type.Boolean({ description: "Start after create (default false)." }),
     ),
+    description: Type.Optional(
+      Type.String({ description: "Optional container description." }),
+    ),
+    tags: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional semicolon-delimited Proxmox tags." }),
+    ),
     password: Type.Optional(
       Type.String({ description: "Root password (optional)." }),
     ),
@@ -75,6 +81,8 @@ export function createProxmoxCreateContainerTool(getClient: ClientFactory) {
         rootfs_size?: string;
         net?: string;
         start?: boolean;
+        description?: string;
+        tags?: string;
         password?: string;
         ssh_public_keys?: string;
         confirm: boolean;
@@ -104,6 +112,12 @@ export function createProxmoxCreateContainerTool(getClient: ClientFactory) {
       }
       if (typeof args.ssh_public_keys === "string" && args.ssh_public_keys.length > 0) {
         body["ssh-public-keys"] = args.ssh_public_keys;
+      }
+      if (typeof args.description === "string" && args.description.length > 0) {
+        body.description = args.description;
+      }
+      if (typeof args.tags === "string" && args.tags.length > 0) {
+        body.tags = args.tags;
       }
       const upid = await client.post<string>(`/nodes/${node}/lxc`, body);
       return jsonToolResult({

@@ -47,6 +47,7 @@ const tools = [
   toolFactories.createProxmoxListSnapshotsTool(getClient),
   toolFactories.createProxmoxGuestNetworkTool(getClient),
   toolFactories.createProxmoxWaitTaskTool(getClient),
+  toolFactories.createProxmoxNextVmidTool(getClient),
   toolFactories.createProxmoxCreateContainerTool(getClient),
   toolFactories.createProxmoxCreateVmTool(getClient),
   toolFactories.createProxmoxCloneResourceTool(getClient),

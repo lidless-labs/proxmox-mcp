@@ -74,4 +74,29 @@ describe("proxmox_create_container", () => {
     expect(form.net0).toBe("name=eth0,bridge=vmbr0,ip=dhcp");
     expect(form.start).toBe("0");
   });
+
+  it("passes metadata fields when supplied", async () => {
+    fake = await startFakeProxmox([
+      {
+        method: "POST",
+        path: "/api2/json/nodes/pve/lxc",
+        status: 200,
+        body: { data: "UPID:pve:00010:lxc-create" },
+      },
+    ]);
+    const tool = makeTool();
+    await tool.execute("test", {
+      vmid: 201,
+      hostname: "ct-meta",
+      ostemplate: "local:vztmpl/debian.tar.zst",
+      node: "pve",
+      description: "scratch ct",
+      tags: "mcp;smoke",
+      confirm: true,
+    });
+    const postReq = fake.requests.find((q) => q.method === "POST");
+    const form = Object.fromEntries(new URLSearchParams(postReq?.body ?? ""));
+    expect(form.description).toBe("scratch ct");
+    expect(form.tags).toBe("mcp;smoke");
+  });
 });

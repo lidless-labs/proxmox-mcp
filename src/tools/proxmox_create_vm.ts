@@ -37,6 +37,30 @@ const Schema = Type.Object(
     start: Type.Optional(
       Type.Boolean({ description: "Start after create (default false)." }),
     ),
+    description: Type.Optional(
+      Type.String({ description: "Optional VM description." }),
+    ),
+    tags: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional semicolon-delimited Proxmox tags." }),
+    ),
+    ciuser: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional cloud-init username." }),
+    ),
+    cipassword: Type.Optional(
+      Type.String({ description: "Optional cloud-init password." }),
+    ),
+    sshkeys: Type.Optional(
+      Type.String({ description: "Optional cloud-init SSH public keys." }),
+    ),
+    ipconfig0: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional cloud-init ipconfig0, e.g. 'ip=dhcp'." }),
+    ),
+    nameserver: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional cloud-init DNS server list." }),
+    ),
+    searchdomain: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional cloud-init DNS search domain." }),
+    ),
     confirm: Type.Boolean({
       description: "Must be true to write. Tier-2 safe-write gate.",
     }),
@@ -71,6 +95,14 @@ export function createProxmoxCreateVmTool(getClient: ClientFactory) {
         storage?: string;
         net?: string;
         start?: boolean;
+        description?: string;
+        tags?: string;
+        ciuser?: string;
+        cipassword?: string;
+        sshkeys?: string;
+        ipconfig0?: string;
+        nameserver?: string;
+        searchdomain?: string;
         confirm: boolean;
       }>(Schema, raw, NAME);
       const client = getClient();
@@ -93,6 +125,10 @@ export function createProxmoxCreateVmTool(getClient: ClientFactory) {
       };
       if (typeof args.iso === "string" && args.iso.length > 0) {
         body.ide2 = `${args.iso},media=cdrom`;
+      }
+      for (const key of ["description", "tags", "ciuser", "cipassword", "sshkeys", "ipconfig0", "nameserver", "searchdomain"] as const) {
+        const value = args[key];
+        if (typeof value === "string" && value.length > 0) body[key] = value;
       }
       const upid = await client.post<string>(`/nodes/${node}/qemu`, body);
       return jsonToolResult({

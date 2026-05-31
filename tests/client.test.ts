@@ -43,6 +43,15 @@ describe("ProxmoxClient", () => {
     expect(fake.requests).toHaveLength(2);
   });
 
+  it("preserves non-transient 5xx Proxmox error messages", async () => {
+    fake = await startFakeProxmox([
+      { method: "GET", path: "/api2/json/version", status: 501, body: { message: "feature unavailable" } },
+    ]);
+    const c = new ProxmoxClient({ url: fake.baseUrl, tokenId: "x", tokenSecret: "y", tlsInsecure: false });
+    await expect(c.get("/version")).rejects.toThrow("feature unavailable");
+    expect(fake.requests).toHaveLength(1);
+  });
+
   it("form-encodes empty POST body with correct content-type", async () => {
     fake = await startFakeProxmox([
       { method: "POST", path: "/api2/json/nodes/pve/lxc/100/status/start", status: 200, body: { data: "UPID:..." } },

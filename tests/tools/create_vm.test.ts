@@ -67,4 +67,38 @@ describe("proxmox_create_vm", () => {
     expect(form.cdrom).toBeUndefined();
     expect(form.ide2).toBeUndefined();
   });
+
+  it("passes metadata and cloud-init fields when supplied", async () => {
+    fake = await startFakeProxmox([
+      {
+        method: "POST",
+        path: "/api2/json/nodes/pve/qemu",
+        status: 200,
+        body: { data: "UPID:pve:00011:qemu-create" },
+      },
+    ]);
+    const tool = makeTool();
+    await tool.execute("test", {
+      vmid: 301,
+      name: "vm-ci",
+      node: "pve",
+      description: "scratch vm",
+      tags: "mcp;smoke",
+      ciuser: "ubuntu",
+      sshkeys: "ssh-ed25519 AAAA...",
+      ipconfig0: "ip=dhcp",
+      nameserver: "dns.example.test",
+      searchdomain: "example.test",
+      confirm: true,
+    });
+    const postReq = fake.requests.find((q) => q.method === "POST");
+    const form = Object.fromEntries(new URLSearchParams(postReq?.body ?? ""));
+    expect(form.description).toBe("scratch vm");
+    expect(form.tags).toBe("mcp;smoke");
+    expect(form.ciuser).toBe("ubuntu");
+    expect(form.sshkeys).toBe("ssh-ed25519 AAAA...");
+    expect(form.ipconfig0).toBe("ip=dhcp");
+    expect(form.nameserver).toBe("dns.example.test");
+    expect(form.searchdomain).toBe("example.test");
+  });
 });
