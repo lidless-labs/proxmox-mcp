@@ -37,6 +37,36 @@ const Schema = Type.Object(
     start: Type.Optional(
       Type.Boolean({ description: "Start after create (default false)." }),
     ),
+    pool: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional resource pool ID to place the VM into." }),
+    ),
+    onboot: Type.Optional(
+      Type.Boolean({ description: "Start VM on host boot (default false)." }),
+    ),
+    protection: Type.Optional(
+      Type.Boolean({ description: "Enable Proxmox protection flag (default false)." }),
+    ),
+    agent: Type.Optional(
+      Type.Boolean({ description: "Enable QEMU guest agent in VM config (default false)." }),
+    ),
+    scsihw: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional SCSI controller, e.g. 'virtio-scsi-pci'." }),
+    ),
+    boot: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional boot order string." }),
+    ),
+    bios: Type.Optional(
+      Type.Union([Type.Literal("seabios"), Type.Literal("ovmf")], { description: "Optional VM BIOS type." }),
+    ),
+    machine: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional machine type." }),
+    ),
+    cpu: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional CPU type." }),
+    ),
+    sockets: Type.Optional(
+      Type.Integer({ minimum: 1, description: "Optional socket count." }),
+    ),
     description: Type.Optional(
       Type.String({ description: "Optional VM description." }),
     ),
@@ -95,6 +125,16 @@ export function createProxmoxCreateVmTool(getClient: ClientFactory) {
         storage?: string;
         net?: string;
         start?: boolean;
+        pool?: string;
+        onboot?: boolean;
+        protection?: boolean;
+        agent?: boolean;
+        scsihw?: string;
+        boot?: string;
+        bios?: "seabios" | "ovmf";
+        machine?: string;
+        cpu?: string;
+        sockets?: number;
         description?: string;
         tags?: string;
         ciuser?: string;
@@ -122,14 +162,18 @@ export function createProxmoxCreateVmTool(getClient: ClientFactory) {
         scsi0: `${storage}:${diskSize}`,
         net0: args.net ?? "model=virtio,bridge=vmbr0",
         start: args.start ? 1 : 0,
+        onboot: args.onboot ? 1 : 0,
+        protection: args.protection ? 1 : 0,
+        agent: args.agent ? 1 : 0,
       };
       if (typeof args.iso === "string" && args.iso.length > 0) {
         body.ide2 = `${args.iso},media=cdrom`;
       }
-      for (const key of ["description", "tags", "ciuser", "cipassword", "sshkeys", "ipconfig0", "nameserver", "searchdomain"] as const) {
+      for (const key of ["pool", "scsihw", "boot", "bios", "machine", "cpu", "description", "tags", "ciuser", "cipassword", "sshkeys", "ipconfig0", "nameserver", "searchdomain"] as const) {
         const value = args[key];
         if (typeof value === "string" && value.length > 0) body[key] = value;
       }
+      if (typeof args.sockets === "number") body.sockets = args.sockets;
       const upid = await client.post<string>(`/nodes/${node}/qemu`, body);
       return jsonToolResult({
         vmid: args.vmid,

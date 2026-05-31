@@ -82,6 +82,16 @@ describe("proxmox_create_vm", () => {
       vmid: 301,
       name: "vm-ci",
       node: "pve",
+      pool: "mcp-smoke",
+      onboot: true,
+      protection: true,
+      agent: true,
+      scsihw: "virtio-scsi-single",
+      boot: "order=scsi0",
+      bios: "ovmf",
+      machine: "q35",
+      cpu: "host",
+      sockets: 1,
       description: "scratch vm",
       tags: "mcp;smoke",
       ciuser: "ubuntu",
@@ -93,6 +103,16 @@ describe("proxmox_create_vm", () => {
     });
     const postReq = fake.requests.find((q) => q.method === "POST");
     const form = Object.fromEntries(new URLSearchParams(postReq?.body ?? ""));
+    expect(form.pool).toBe("mcp-smoke");
+    expect(form.onboot).toBe("1");
+    expect(form.protection).toBe("1");
+    expect(form.agent).toBe("1");
+    expect(form.scsihw).toBe("virtio-scsi-single");
+    expect(form.boot).toBe("order=scsi0");
+    expect(form.bios).toBe("ovmf");
+    expect(form.machine).toBe("q35");
+    expect(form.cpu).toBe("host");
+    expect(form.sockets).toBe("1");
     expect(form.description).toBe("scratch vm");
     expect(form.tags).toBe("mcp;smoke");
     expect(form.ciuser).toBe("ubuntu");

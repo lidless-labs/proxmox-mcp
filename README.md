@@ -38,10 +38,13 @@ MCP server exposing Proxmox VE read + gated guest-read + safe-write + destructiv
 | `proxmox_stat_path` | 2 gated guest read | Inspect guest path metadata. Requires `confirm: true`. |
 | `proxmox_list_directory` | 2 gated guest read | List one guest directory. Requires `confirm: true`. |
 | `proxmox_service_status` | 2 gated guest read | Read systemd service state inside a guest. Requires `confirm: true`. |
+| `proxmox_service_start` | 2 safe-write | Start a systemd service inside a guest. Requires `confirm: true`. |
+| `proxmox_service_stop` | 2 safe-write | Stop a systemd service inside a guest. Requires `confirm: true`. |
+| `proxmox_service_restart` | 2 safe-write | Restart a systemd service inside a guest. Requires `confirm: true`. |
 
 **Reads (15):** open; no flags required.
 **Gated guest reads (4):** guest file/path/directory/service inspection tools require `confirm: true` because they expose in-guest state through host-backed SSH.
-**Safe writes (10):** require `confirm: true`. Schema documents the gate on every tool. `WriteGateError` fires before any HTTP call.
+**Safe writes (13):** require `confirm: true`. Schema documents the gate on every tool. `WriteGateError` fires before any HTTP call.
 **Destructive (3):** require `confirm: true` + `destructive: true` + env `PROXMOX_ENABLE_DESTRUCTIVE=1`. All three gates must be satisfied; any one missing throws `WriteGateError` before resolving the resource.
 
 ## Configuration
@@ -81,6 +84,31 @@ Per-VM overrides (read at execute time, no MCP restart needed):
 - `PROXMOX_VM_<vmid>_SSH_KEY` - per-VM key override
 
 For QEMU VMs without a per-VM env override, install `qemu-guest-agent` in the VM and enable it with `qm set <vmid> --agent 1` so the IP can be discovered automatically.
+
+## Live smoke testing
+
+Read-only live smoke:
+
+```bash
+PROXMOX_ENABLE_LIVE_SMOKE=1 npm run smoke:live
+```
+
+Full scratch CT lifecycle smoke requires a token that can create, start, stop, inspect, and destroy resources in the `mcp-smoke` pool:
+
+```bash
+PROXMOX_ENABLE_LIVE_SMOKE=1 \
+PROXMOX_SMOKE_CREATE=1 \
+PROXMOX_ENABLE_DESTRUCTIVE=1 \
+npm run smoke:live
+```
+
+Create a scoped smoke-test role/user/token on the Proxmox host:
+
+```bash
+PROXMOX_CREATE_SMOKE_TOKEN=1 bash scripts/create-smoke-token.sh
+```
+
+The script creates or updates role `McpSmokeRole`, pool `mcp-smoke`, user `mcp-smoke@pve`, token `mcp-smoke@pve!live-smoke`, and ACLs for the smoke pool plus `local` and `local-lvm` storage. Proxmox prints the token secret once; store it in your private environment and do not commit it.
 
 ## Install
 
@@ -181,7 +209,7 @@ PROXMOX_TLS_INSECURE = "false"
 This MCP uses the same three-tier write-gating pattern as the rest of the `solomonneas/*-mcp` family:
 
 - **Tier 1 (reads):** open. No confirm flag needed. Status, listings, usage, recent tasks, backup inventory, template inventory, storage inventory, snapshot inventory, guest network lookup, task wait, and next-VMID lookup live here.
-- **Tier 2 (gated guest reads + safe writes):** require an explicit `confirm: true` arg. Guest file/path/directory/service inspection, start, stop, reboot, snapshot create, run backup, create container, create VM, clone, in-container `exec`, and in-container `write_file` live here. A hallucinated tool call without the confirm flag throws `WriteGateError` before any HTTP traffic.
+- **Tier 2 (gated guest reads + safe writes):** require an explicit `confirm: true` arg. Guest file/path/directory/service inspection, start, stop, reboot, snapshot create, run backup, create container, create VM, clone, in-container `exec`, in-container `write_file`, and guest service actions live here. A hallucinated tool call without the confirm flag throws `WriteGateError` before any HTTP traffic.
 - **Tier 3 (destructive):** require `confirm: true` + `destructive: true` + the env flag `PROXMOX_ENABLE_DESTRUCTIVE=1` on the MCP process. Permanent resource deletion, snapshot deletion, and non-graceful force-stop live here.
 
 ### Destructive operations env gate

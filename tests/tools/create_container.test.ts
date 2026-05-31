@@ -90,12 +90,22 @@ describe("proxmox_create_container", () => {
       hostname: "ct-meta",
       ostemplate: "local:vztmpl/debian.tar.zst",
       node: "pve",
+      pool: "mcp-smoke",
+      onboot: true,
+      unprivileged: false,
+      protection: true,
+      features: "nesting=1",
       description: "scratch ct",
       tags: "mcp;smoke",
       confirm: true,
     });
     const postReq = fake.requests.find((q) => q.method === "POST");
     const form = Object.fromEntries(new URLSearchParams(postReq?.body ?? ""));
+    expect(form.pool).toBe("mcp-smoke");
+    expect(form.onboot).toBe("1");
+    expect(form.unprivileged).toBe("0");
+    expect(form.protection).toBe("1");
+    expect(form.features).toBe("nesting=1");
     expect(form.description).toBe("scratch ct");
     expect(form.tags).toBe("mcp;smoke");
   });

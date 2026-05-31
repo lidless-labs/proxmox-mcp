@@ -35,6 +35,21 @@ const Schema = Type.Object(
     start: Type.Optional(
       Type.Boolean({ description: "Start after create (default false)." }),
     ),
+    pool: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional resource pool ID to place the container into." }),
+    ),
+    onboot: Type.Optional(
+      Type.Boolean({ description: "Start container on host boot (default false)." }),
+    ),
+    unprivileged: Type.Optional(
+      Type.Boolean({ description: "Create an unprivileged container (default true)." }),
+    ),
+    protection: Type.Optional(
+      Type.Boolean({ description: "Enable Proxmox protection flag (default false)." }),
+    ),
+    features: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional LXC features string, e.g. 'nesting=1'." }),
+    ),
     description: Type.Optional(
       Type.String({ description: "Optional container description." }),
     ),
@@ -81,6 +96,11 @@ export function createProxmoxCreateContainerTool(getClient: ClientFactory) {
         rootfs_size?: string;
         net?: string;
         start?: boolean;
+        pool?: string;
+        onboot?: boolean;
+        unprivileged?: boolean;
+        protection?: boolean;
+        features?: string;
         description?: string;
         tags?: string;
         password?: string;
@@ -106,7 +126,14 @@ export function createProxmoxCreateContainerTool(getClient: ClientFactory) {
         rootfs: `${storage}:${rootfsSize}`,
         net0: args.net ?? "name=eth0,bridge=vmbr0,ip=dhcp",
         start: args.start ? 1 : 0,
+        onboot: args.onboot ? 1 : 0,
+        unprivileged: args.unprivileged === false ? 0 : 1,
+        protection: args.protection ? 1 : 0,
       };
+      for (const key of ["pool", "features"] as const) {
+        const value = args[key];
+        if (typeof value === "string" && value.length > 0) body[key] = value;
+      }
       if (typeof args.password === "string" && args.password.length > 0) {
         body.password = args.password;
       }

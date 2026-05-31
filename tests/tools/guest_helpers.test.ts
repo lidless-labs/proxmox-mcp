@@ -6,6 +6,9 @@ import type { SshExecutor } from "../../src/tools/_util.ts";
 import { createProxmoxStatPathTool } from "../../src/tools/proxmox_stat_path.ts";
 import { createProxmoxListDirectoryTool } from "../../src/tools/proxmox_list_directory.ts";
 import { createProxmoxServiceStatusTool } from "../../src/tools/proxmox_service_status.ts";
+import { createProxmoxServiceRestartTool } from "../../src/tools/proxmox_service_restart.ts";
+import { createProxmoxServiceStartTool } from "../../src/tools/proxmox_service_start.ts";
+import { createProxmoxServiceStopTool } from "../../src/tools/proxmox_service_stop.ts";
 
 let fake: FakeProxmox | null = null;
 afterEach(async () => { if (fake) await fake.close(); fake = null; });
@@ -76,5 +79,24 @@ describe("guest helper tools", () => {
     const r = await tool.execute("t", { vmid: 109, service: "ssh.service", confirm: true });
     const payload = JSON.parse(r.content[0].text);
     expect(payload.status).toMatchObject({ Id: "ssh.service", ActiveState: "active", SubState: "running" });
+  });
+
+  it("service action tools run systemctl and return status", async () => {
+    await fakeLxc();
+    const ssh = fakeSsh("Id=ssh.service\nLoadState=loaded\nActiveState=active\nSubState=running\n");
+    const tool = createProxmoxServiceRestartTool(() => getClient(), () => ssh, VM_DEFAULTS);
+    const r = await tool.execute("t", { vmid: 109, service: "ssh.service", confirm: true });
+    const payload = JSON.parse(r.content[0].text);
+    expect(payload.action).toBe("restart");
+    expect(payload.status.ActiveState).toBe("active");
+    expect(ssh.execInLxc).toHaveBeenCalledWith(109, expect.stringContaining("systemctl restart"), 60000, undefined);
+  });
+
+  it("service action tools refuse without confirm:true", async () => {
+    const ssh = fakeSsh("");
+    const start = createProxmoxServiceStartTool(() => getClient(), () => ssh, VM_DEFAULTS);
+    const stop = createProxmoxServiceStopTool(() => getClient(), () => ssh, VM_DEFAULTS);
+    await expect(start.execute("t", { vmid: 109, service: "ssh.service" })).rejects.toThrow(WriteGateError);
+    await expect(stop.execute("t", { vmid: 109, service: "ssh.service" })).rejects.toThrow(WriteGateError);
   });
 });

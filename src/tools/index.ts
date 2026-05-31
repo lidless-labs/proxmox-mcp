@@ -30,3 +30,6 @@ export { createProxmoxWriteFileTool } from "./proxmox_write_file.ts";
 export { createProxmoxStatPathTool } from "./proxmox_stat_path.ts";
 export { createProxmoxListDirectoryTool } from "./proxmox_list_directory.ts";
 export { createProxmoxServiceStatusTool } from "./proxmox_service_status.ts";
+export { createProxmoxServiceStartTool } from "./proxmox_service_start.ts";
+export { createProxmoxServiceStopTool } from "./proxmox_service_stop.ts";
+export { createProxmoxServiceRestartTool } from "./proxmox_service_restart.ts";

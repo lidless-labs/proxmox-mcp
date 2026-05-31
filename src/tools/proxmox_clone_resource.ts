@@ -14,6 +14,12 @@ const Schema = Type.Object(
     storage: Type.Optional(
       Type.String({ minLength: 1, description: "Target storage (default: same as source)." }),
     ),
+    target_node: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional target node for the clone." }),
+    ),
+    pool: Type.Optional(
+      Type.String({ minLength: 1, description: "Optional resource pool ID for the clone." }),
+    ),
     snapname: Type.Optional(
       Type.String({ minLength: 1, description: "Clone from a named snapshot (optional)." }),
     ),
@@ -47,6 +53,8 @@ export function createProxmoxCloneResourceTool(getClient: ClientFactory) {
         name: string;
         full?: boolean;
         storage?: string;
+        target_node?: string;
+        pool?: string;
         snapname?: string;
         description?: string;
         tags?: string;
@@ -61,6 +69,12 @@ export function createProxmoxCloneResourceTool(getClient: ClientFactory) {
       };
       if (typeof args.storage === "string" && args.storage.length > 0) {
         body.storage = args.storage;
+      }
+      if (typeof args.target_node === "string" && args.target_node.length > 0) {
+        body.target = args.target_node;
+      }
+      if (typeof args.pool === "string" && args.pool.length > 0) {
+        body.pool = args.pool;
       }
       if (typeof args.snapname === "string" && args.snapname.length > 0) {
         body.snapname = args.snapname;

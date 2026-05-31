@@ -24,6 +24,7 @@
     "build": "tsup",
     "start": "node dist/mcp-server.js",
     "dev": "tsx mcp-server.ts",
+    "smoke:live": "tsx scripts/live-smoke.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run typecheck && npm test && npm run build"

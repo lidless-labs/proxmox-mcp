@@ -51,6 +51,8 @@ describe("proxmox_clone_resource", () => {
       source_vmid: 110,
       new_vmid: 210,
       name: "vm-clone",
+      target_node: "pve-b",
+      pool: "mcp-smoke",
       description: "clone desc",
       tags: "mcp;clone",
       confirm: true,
@@ -68,6 +70,8 @@ describe("proxmox_clone_resource", () => {
     expect(form.newid).toBe("210");
     expect(form.name).toBe("vm-clone");
     expect(form.full).toBe("1");
+    expect(form.target).toBe("pve-b");
+    expect(form.pool).toBe("mcp-smoke");
     expect(form.description).toBe("clone desc");
     expect(form.tags).toBe("mcp;clone");
   });
