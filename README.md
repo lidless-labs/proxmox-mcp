@@ -35,9 +35,12 @@ MCP server exposing Proxmox VE read + gated guest-read + safe-write + destructiv
 | `proxmox_read_file` | 2 gated guest read | Read a file from inside an LXC or QEMU VM (SSH + `cat`). Requires `confirm: true`. |
 | `proxmox_exec` | 2 safe-write | Run a shell command inside an LXC or QEMU VM. Returns stdout/stderr/exit_code. |
 | `proxmox_write_file` | 2 safe-write | Write a text file (with parent dirs) inside an LXC or QEMU VM. |
+| `proxmox_stat_path` | 2 gated guest read | Inspect guest path metadata. Requires `confirm: true`. |
+| `proxmox_list_directory` | 2 gated guest read | List one guest directory. Requires `confirm: true`. |
+| `proxmox_service_status` | 2 gated guest read | Read systemd service state inside a guest. Requires `confirm: true`. |
 
 **Reads (15):** open; no flags required.
-**Gated guest reads (1):** `proxmox_read_file` requires `confirm: true` because it can expose arbitrary in-guest file contents through host-backed SSH.
+**Gated guest reads (4):** guest file/path/directory/service inspection tools require `confirm: true` because they expose in-guest state through host-backed SSH.
 **Safe writes (10):** require `confirm: true`. Schema documents the gate on every tool. `WriteGateError` fires before any HTTP call.
 **Destructive (3):** require `confirm: true` + `destructive: true` + env `PROXMOX_ENABLE_DESTRUCTIVE=1`. All three gates must be satisfied; any one missing throws `WriteGateError` before resolving the resource.
 
@@ -178,7 +181,7 @@ PROXMOX_TLS_INSECURE = "false"
 This MCP uses the same three-tier write-gating pattern as the rest of the `solomonneas/*-mcp` family:
 
 - **Tier 1 (reads):** open. No confirm flag needed. Status, listings, usage, recent tasks, backup inventory, template inventory, storage inventory, snapshot inventory, guest network lookup, task wait, and next-VMID lookup live here.
-- **Tier 2 (gated guest reads + safe writes):** require an explicit `confirm: true` arg. Guest file reads, start, stop, reboot, snapshot create, run backup, create container, create VM, clone, in-container `exec`, and in-container `write_file` live here. A hallucinated tool call without the confirm flag throws `WriteGateError` before any HTTP traffic.
+- **Tier 2 (gated guest reads + safe writes):** require an explicit `confirm: true` arg. Guest file/path/directory/service inspection, start, stop, reboot, snapshot create, run backup, create container, create VM, clone, in-container `exec`, and in-container `write_file` live here. A hallucinated tool call without the confirm flag throws `WriteGateError` before any HTTP traffic.
 - **Tier 3 (destructive):** require `confirm: true` + `destructive: true` + the env flag `PROXMOX_ENABLE_DESTRUCTIVE=1` on the MCP process. Permanent resource deletion, snapshot deletion, and non-graceful force-stop live here.
 
 ### Destructive operations env gate

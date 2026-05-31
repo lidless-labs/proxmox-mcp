@@ -57,6 +57,9 @@ const tools = [
   toolFactories.createProxmoxExecTool(getClient, getSsh, vmDefaults),
   toolFactories.createProxmoxReadFileTool(getClient, getSsh, vmDefaults),
   toolFactories.createProxmoxWriteFileTool(getClient, getSsh, vmDefaults),
+  toolFactories.createProxmoxStatPathTool(getClient, getSsh, vmDefaults),
+  toolFactories.createProxmoxListDirectoryTool(getClient, getSsh, vmDefaults),
+  toolFactories.createProxmoxServiceStatusTool(getClient, getSsh, vmDefaults),
 ];
 
 const toolMap = new Map(tools.map((t) => [t.name, t]));

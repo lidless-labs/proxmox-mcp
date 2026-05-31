@@ -27,3 +27,6 @@ export { createProxmoxForceStopResourceTool } from "./proxmox_force_stop_resourc
 export { createProxmoxExecTool } from "./proxmox_exec.ts";
 export { createProxmoxReadFileTool } from "./proxmox_read_file.ts";
 export { createProxmoxWriteFileTool } from "./proxmox_write_file.ts";
+export { createProxmoxStatPathTool } from "./proxmox_stat_path.ts";
+export { createProxmoxListDirectoryTool } from "./proxmox_list_directory.ts";
+export { createProxmoxServiceStatusTool } from "./proxmox_service_status.ts";
