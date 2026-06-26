@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest a new tool, a new env option, or an improvement to proxmox-mcp.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the workflow you want an AI client to handle against Proxmox that it cannot today.
+      placeholder: |
+        I want my agent to read a guest's cloud-init config before it boots, and there is no read tool for it.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed tool or change
+      description: What would the tool be named, what would it return, and which Proxmox API or guest operation backs it?
+    validations:
+      required: false
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Which safety tier would this fall into?
+      description: Reads are open; safe writes need confirm; destructive ops need confirm + destructive + the env flag.
+      options:
+        - "Tier 1 (read, no flag)"
+        - "Tier 2 (gated read / safe write, needs confirm)"
+        - "Tier 3 (destructive, needs the destructive env gate)"
+        - "Not sure"
+    validations:
+      required: true
+  - type: checkboxes
+    id: ack
+    attributes:
+      label: Acknowledgement
+      options:
+        - label: I understand new write or destructive tools need a conversation first (see CONTRIBUTING.md), and that any state-changing tool must ship with its gate.
+          required: true
