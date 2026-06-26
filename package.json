@@ -63,6 +63,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/solomonneas/proxmox-mcp"
+    "url": "https://github.com/lidless-labs/proxmox-mcp"
   }
 }
