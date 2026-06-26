@@ -1,0 +1,59 @@
+name: Bug report
+description: A tool returns the wrong result, a gate behaves incorrectly, or the server fails to start.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Which tool did you call, with what arguments (scrubbed), and what did you expect versus what you got?
+      placeholder: |
+        I called `proxmox_list_containers` and got an empty list, but I have 4 running LXCs.
+        I expected the inventory across all nodes.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: proxmox-mcp version
+      description: The version you installed (e.g. output of `npm ls @solomonneas/proxmox-mcp`).
+      placeholder: 0.3.0
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      description: Claude Desktop, Claude Code, OpenClaw, Codex CLI, etc.
+      placeholder: Claude Desktop
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      placeholder: 20.x / 22.x
+    validations:
+      required: true
+  - type: input
+    id: pve
+    attributes:
+      label: Proxmox VE version
+      placeholder: PVE 8.2
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output
+      description: Paste the relevant tool output or server log. Redact tokens, SSH keys, real hostnames, and node names.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: scrub
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I have scrubbed tokens, SSH keys, real hostnames, private IPs, and node names from this report.
+          required: true

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Website and docs
+    url: https://lidless.dev/proxmox-mcp
+    about: Setup, the full tool list, and the safety model. Start here before filing an issue.
+  - name: Security report
+    url: https://github.com/lidless-labs/proxmox-mcp/blob/master/SECURITY.md
+    about: Do not file security issues publicly. See SECURITY.md for how to report privately.

@@ -1,8 +1,54 @@
-# proxmox-mcp
+<h1 align="center">proxmox-mcp</h1>
 
-MCP server exposing Proxmox VE read + gated guest-read + safe-write + destructive tools via API token auth. Reads are open, guest file reads and writes require `confirm: true`, destructive ops require `confirm: true` + `destructive: true` + a process-level `PROXMOX_ENABLE_DESTRUCTIVE=1` env flag.
+<p align="center">
+  <strong>An MCP server that lets an AI client read and operate a Proxmox VE cluster, VMs, containers, and nodes, over plain API-token auth.</strong>
+</p>
 
-## Tools
+<p align="center">
+  Why: your homelab lives in Proxmox, and you want an agent to inventory it, boot a guest, or trace a task without you clicking through the web UI. How it differs: a strict three-tier write gate is built into every tool, so reads are open but anything that changes state needs an explicit confirm flag, and anything destructive needs two more gates on top. <strong>Status: WIP.</strong> The tool surface and the safety model are stable, but the package is still pre-1.0 and the latest published release is <code>0.3.0</code>.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/npm/v/@solomonneas/proxmox-mcp?style=for-the-badge&label=npm" alt="npm version">
+  <img src="https://img.shields.io/github/actions/workflow/status/lidless-labs/proxmox-mcp/ci.yml?branch=master&style=for-the-badge&label=ci" alt="CI status">
+  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT license">
+  <img src="https://img.shields.io/badge/MCP-server-7c3aed?style=for-the-badge" alt="MCP server">
+</p>
+
+<p align="center">
+  <a href="https://lidless.dev/proxmox-mcp"><strong>Website &amp; docs &rarr; lidless.dev/proxmox-mcp</strong></a>
+</p>
+
+## What it does
+
+proxmox-mcp is an open-source [Model Context Protocol](https://modelcontextprotocol.io) server for [Proxmox VE](https://www.proxmox.com/en/proxmox-virtual-environment/overview), the open-source virtualization platform. It gives an AI client (Claude Desktop, Claude Code, OpenClaw, Codex CLI, or any MCP host) a structured, gated interface to a Proxmox cluster: inventory VMs and LXC containers, inspect node and storage status, read RRD metrics, trace tasks, manage snapshots and backups, run gated reads and shell commands inside guests, and provision, clone, or destroy resources, all over Proxmox API-token auth.
+
+It is built for homelab and virtualization operators who want to point an agent at their cluster without handing it a root shell. The differentiator is the write-safety model: 42 tools split across four tiers, where reads need nothing, safe writes need `confirm: true`, and destructive operations need `confirm: true` + `destructive: true` + a process-level `PROXMOX_ENABLE_DESTRUCTIVE=1` env flag. A hallucinated or careless tool call fails closed, before any HTTP traffic reaches Proxmox.
+
+## Proof
+
+A real MCP client config. Drop this into Claude Desktop (`claude_desktop_config.json`) and the 42 tools appear in the client. Reads work immediately; the destructive env gate stays off until you opt in.
+
+```json
+{
+  "mcpServers": {
+    "proxmox": {
+      "command": "npx",
+      "args": ["-y", "@solomonneas/proxmox-mcp"],
+      "env": {
+        "PROXMOX_URL": "https://192.0.2.10:8006",
+        "PROXMOX_TOKEN_ID": "pve-admin@pam!api-token-1",
+        "PROXMOX_TOKEN_SECRET": "00000000-0000-0000-0000-000000000000",
+        "PROXMOX_TLS_INSECURE": "false"
+      }
+    }
+  }
+}
+```
+
+### Tool list (42 tools, verified against source)
+
+Tier markers below are authoritative: each tool's gate is enforced in code (`src/gates.ts` + per-tool schema), and `WriteGateError` fires before any HTTP call when a gate is unmet.
 
 | Tool | Tier | Notes |
 | --- | --- | --- |
@@ -24,53 +70,91 @@ MCP server exposing Proxmox VE read + gated guest-read + safe-write + destructiv
 | `proxmox_wait_task` | 1 read | Poll a UPID until stopped or timeout. |
 | `proxmox_next_vmid` | 1 read | Get the next available VMID for provisioning. |
 | `proxmox_list_pool_resources` | 1 read | Inspect resources assigned to a Proxmox pool, defaulting to `mcp-smoke`. |
-| `proxmox_start_resource` | 2 safe-write | Boot container or VM. |
-| `proxmox_stop_resource` | 2 safe-write | Graceful shutdown. |
-| `proxmox_reboot_resource` | 2 safe-write | Reboot in place. |
-| `proxmox_snapshot_resource` | 2 safe-write | Create named snapshot. |
+| `proxmox_get_task_status` | 1 read | Single UPID status lookup. |
+| `proxmox_get_task_log` | 1 read | Task log tail for a UPID. |
+| `proxmox_read_file` | 2 gated guest read | Read a file from inside an LXC or QEMU VM (SSH + `cat`). Requires `confirm: true`. |
+| `proxmox_stat_path` | 2 gated guest read | Inspect guest path metadata. Requires `confirm: true`. |
+| `proxmox_list_directory` | 2 gated guest read | List one guest directory. Requires `confirm: true`. |
+| `proxmox_service_status` | 2 gated guest read | Read systemd service state inside a guest. Requires `confirm: true`. |
+| `proxmox_start_resource` | 2 safe-write | Boot container or VM. Requires `confirm: true`. |
+| `proxmox_stop_resource` | 2 safe-write | Graceful shutdown. Requires `confirm: true`. |
+| `proxmox_reboot_resource` | 2 safe-write | Reboot in place. Requires `confirm: true`. |
+| `proxmox_snapshot_resource` | 2 safe-write | Create named snapshot. Requires `confirm: true`. |
+| `proxmox_run_backup` | 2 safe-write | Trigger vzdump for a vmid. Requires `confirm: true`. |
+| `proxmox_create_container` | 2 safe-write | Provision new LXC from template (`POST /nodes/{node}/lxc`). Requires `confirm: true`. |
+| `proxmox_create_vm` | 2 safe-write | Provision new QEMU VM (`POST /nodes/{node}/qemu`). Requires `confirm: true`. |
+| `proxmox_clone_resource` | 2 safe-write | Clone existing container or VM into a fresh vmid. Requires `confirm: true`. |
+| `proxmox_exec` | 2 safe-write | Run a shell command inside an LXC or QEMU VM. Returns stdout/stderr/exit_code. Requires `confirm: true`. |
+| `proxmox_write_file` | 2 safe-write | Write a text file (with parent dirs) inside an LXC or QEMU VM. Requires `confirm: true`. |
+| `proxmox_service_start` | 2 safe-write | Start a systemd service inside a guest. Requires `confirm: true`. |
+| `proxmox_service_stop` | 2 safe-write | Stop a systemd service inside a guest. Requires `confirm: true`. |
+| `proxmox_service_restart` | 2 safe-write | Restart a systemd service inside a guest. Requires `confirm: true`. |
 | `proxmox_rollback_snapshot` | 3 destructive | Roll back a resource to a named snapshot. |
-| `proxmox_run_backup` | 2 safe-write | Trigger vzdump for a vmid. |
-| `proxmox_create_container` | 2 safe-write | Provision new LXC from template (`POST /nodes/{node}/lxc`). |
-| `proxmox_create_vm` | 2 safe-write | Provision new QEMU VM (`POST /nodes/{node}/qemu`). |
-| `proxmox_clone_resource` | 2 safe-write | Clone existing container or VM into a fresh vmid. |
 | `proxmox_destroy_resource` | 3 destructive | Permanently delete an LXC or VM (`DELETE /nodes/{node}/{type}/{vmid}`). |
 | `proxmox_cleanup_smoke_resources` | 3 destructive | Dry-run or destroy smoke-prefixed LXC/QEMU guests from a smoke pool. |
 | `proxmox_delete_snapshot` | 3 destructive | Delete a named snapshot. |
 | `proxmox_force_stop_resource` | 3 destructive | Non-graceful hard stop of a running container or VM. |
-| `proxmox_get_task_status` | 1 read | Single UPID status lookup. |
-| `proxmox_get_task_log` | 1 read | Task log tail for a UPID. |
-| `proxmox_read_file` | 2 gated guest read | Read a file from inside an LXC or QEMU VM (SSH + `cat`). Requires `confirm: true`. |
-| `proxmox_exec` | 2 safe-write | Run a shell command inside an LXC or QEMU VM. Returns stdout/stderr/exit_code. |
-| `proxmox_write_file` | 2 safe-write | Write a text file (with parent dirs) inside an LXC or QEMU VM. |
-| `proxmox_stat_path` | 2 gated guest read | Inspect guest path metadata. Requires `confirm: true`. |
-| `proxmox_list_directory` | 2 gated guest read | List one guest directory. Requires `confirm: true`. |
-| `proxmox_service_status` | 2 gated guest read | Read systemd service state inside a guest. Requires `confirm: true`. |
-| `proxmox_service_start` | 2 safe-write | Start a systemd service inside a guest. Requires `confirm: true`. |
-| `proxmox_service_stop` | 2 safe-write | Stop a systemd service inside a guest. Requires `confirm: true`. |
-| `proxmox_service_restart` | 2 safe-write | Restart a systemd service inside a guest. Requires `confirm: true`. |
 
 **Reads (20):** open; no flags required.
 **Gated guest reads (4):** guest file/path/directory/service inspection tools require `confirm: true` because they expose in-guest state through host-backed SSH.
-**Safe writes (13):** require `confirm: true`. Schema documents the gate on every tool. `WriteGateError` fires before any HTTP call.
-**Destructive (5):** require `confirm: true` + `destructive: true` + env `PROXMOX_ENABLE_DESTRUCTIVE=1`. All three gates must be satisfied; any one missing throws `WriteGateError` before resolving the resource.
+**Safe writes (13):** require `confirm: true`. The schema documents the gate on every tool. `WriteGateError` fires before any HTTP call.
+**Destructive (5):** require `confirm: true` + `destructive: true` + env `PROXMOX_ENABLE_DESTRUCTIVE=1`. All three gates must be satisfied; if any one is missing the tool throws `WriteGateError` before resolving the resource.
 
-## Changelog
+> Five tools are destructive and can delete or hard-stop guests: `proxmox_destroy_resource`, `proxmox_cleanup_smoke_resources`, `proxmox_rollback_snapshot`, `proxmox_delete_snapshot`, and `proxmox_force_stop_resource`. They are gated behind the `PROXMOX_ENABLE_DESTRUCTIVE=1` process env flag and stay inert until you set it. See [SECURITY.md](SECURITY.md) and the [Safety](#safety) section.
 
-### 0.5.0
+## Quickstart
 
-- Add effective permission audit tooling for smoke-token ACL checks.
-- Add structured MCP error payloads with stable `code` fields.
-- Add snapshot rollback tooling and optional live rollback smoke.
-- Add optional live backup smoke that waits for vzdump and verifies the backup artifact is listed.
-- Harden live QEMU smoke with source validation, guest-network waiting, and cleanup stop-before-destroy behavior.
-- Harden smoke cleanup with `dry_run:true` by default, delete task waiting, and running-guest skips unless `force:true`.
+Install globally or run on demand with `npx`:
+
+```bash
+npm install -g @solomonneas/proxmox-mcp
+# or, no install:
+npx -y @solomonneas/proxmox-mcp
+```
+
+Set the three required credential env vars (scrub real hosts and IPs out of any shared config):
+
+```bash
+export PROXMOX_URL=https://192.0.2.10:8006
+export PROXMOX_TOKEN_ID=pve-admin@pam!api-token-1
+export PROXMOX_TOKEN_SECRET=00000000-0000-0000-0000-000000000000
+
+# Optional: skip TLS cert validation for homelab self-signed certs.
+# Accepts true/1/yes (case-insensitive). Defaults to false.
+export PROXMOX_TLS_INSECURE=false
+```
+
+Wire it into your MCP client (full per-client config in [Setup](#setup)):
+
+```bash
+# Claude Code
+claude mcp add proxmox -s user -- npx -y @solomonneas/proxmox-mcp
+```
+
+Then ask your agent to list your cluster's containers. Reads work with nothing but the three credential vars; write and destructive tiers stay gated until you opt in.
+
+> Note: the latest version published to npm is `0.3.0`. This repository tracks ahead of npm; install pins the published release.
+
+## Why not the alternatives?
+
+- **The Proxmox web UI** is the canonical control plane and you should keep it. proxmox-mcp is not a replacement; it is the agent-facing read/operate surface so an AI client can inventory, trace, and operate the cluster in the same loop it is already running, without you driving a browser.
+- **Hand-rolling Proxmox API calls in your agent** works, but the agent has to manage token auth, the redactor, retry, task polling, and (critically) safety on its own. proxmox-mcp ships the token redactor, structured MCP error payloads, and the three-tier write gate so a careless or hallucinated call fails closed instead of deleting a guest.
+- **A general "run any HTTP request" MCP tool** gives a model unbounded access to the Proxmox API with no guardrails. proxmox-mcp is the opposite: a fixed, named tool surface where every state change is gated and every destructive op needs an explicit process-level env flag.
+- **Terraform / Ansible / `pct` + `qm`** are the right tools for declarative, reviewed, repeatable infrastructure. proxmox-mcp is for interactive, agent-driven inspection and operation, not for codifying your cluster.
+
+## What proxmox-mcp is not
+
+- It is **not a tool for blind automation of destructive operations.** The destructive tier exists for deliberate, supervised work (smoke-test cycles, intentional teardown), not for unattended agents. The `PROXMOX_ENABLE_DESTRUCTIVE=1` flag is a coarse "I am actively doing this right now" toggle; leave it unset day to day.
+- It is **not a Proxmox cluster manager or orchestrator.** It does not schedule, it does not run in the background, and it holds no state of its own. It translates MCP tool calls into Proxmox API calls and SSH commands, and that is all.
+- It is **not a substitute for least-privilege tokens.** The write gate is a guardrail against a misbehaving model, not a substitute for a properly scoped Proxmox API token. Start read-only and grade up. See [SECURITY.md](SECURITY.md).
+- It is **not stable yet.** It is WIP, pre-1.0, and the tool surface can change between minor versions.
 
 ## Configuration
 
 Set the following env vars. All three credential vars are required.
 
 ```
-PROXMOX_URL=https://pve.example.local:8006
+PROXMOX_URL=https://192.0.2.10:8006
 PROXMOX_TOKEN_ID=pve-admin@pam!api-token-1
 PROXMOX_TOKEN_SECRET=00000000-0000-0000-0000-000000000000
 
@@ -81,7 +165,7 @@ PROXMOX_TLS_INSECURE=false
 
 Trailing slashes on `PROXMOX_URL` are stripped. The token secret is registered with the redactor on startup and masked from all log + error output.
 
-### In-container exec env vars (v0.4)
+### In-container exec env vars
 
 The `proxmox_exec`, `proxmox_read_file`, and `proxmox_write_file` tools SSH to the Proxmox host (for LXC, via `pct exec`) or directly to the VM (for QEMU). All are optional; defaults derive from `PROXMOX_URL`.
 
@@ -102,6 +186,92 @@ Per-VM overrides (read at execute time, no MCP restart needed):
 - `PROXMOX_VM_<vmid>_SSH_KEY` - per-VM key override
 
 For QEMU VMs without a per-VM env override, install `qemu-guest-agent` in the VM and enable it with `qm set <vmid> --agent 1` so the IP can be discovered automatically.
+
+## Setup
+
+### Claude Desktop
+
+`~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+```json
+{
+  "mcpServers": {
+    "proxmox": {
+      "command": "npx",
+      "args": ["-y", "@solomonneas/proxmox-mcp"],
+      "env": {
+        "PROXMOX_URL": "https://192.0.2.10:8006",
+        "PROXMOX_TOKEN_ID": "pve-admin@pam!api-token-1",
+        "PROXMOX_TOKEN_SECRET": "00000000-0000-0000-0000-000000000000",
+        "PROXMOX_TLS_INSECURE": "false"
+      }
+    }
+  }
+}
+```
+
+### Claude Code
+
+```bash
+claude mcp add proxmox -s user -- npx -y @solomonneas/proxmox-mcp
+```
+
+Then export env vars in your shell (`~/.bashrc`, `~/.zshrc`) or pass `--env` flags.
+
+### OpenClaw
+
+Plugin loads automatically once installed. Config goes in your `~/.openclaw/openclaw.json` `plugins.entries.proxmox` (or use the bundled `openclaw.plugin.json`):
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "proxmox": {
+        "package": "@solomonneas/proxmox-mcp",
+        "activation": { "onStartup": true }
+      }
+    }
+  }
+}
+```
+
+Env vars from `~/.openclaw/workspace/.env` are inherited by the plugin.
+
+### Codex CLI
+
+`~/.codex/config.toml`:
+
+```toml
+[mcp_servers.proxmox]
+command = "npx"
+args = ["-y", "@solomonneas/proxmox-mcp"]
+
+[mcp_servers.proxmox.env]
+PROXMOX_URL = "https://192.0.2.10:8006"
+PROXMOX_TOKEN_ID = "pve-admin@pam!api-token-1"
+PROXMOX_TOKEN_SECRET = "00000000-0000-0000-0000-000000000000"
+PROXMOX_TLS_INSECURE = "false"
+```
+
+## Safety
+
+This MCP uses a three-tier write-gating model. The tier is enforced in code, not just documented.
+
+- **Tier 1 (reads):** open. No confirm flag needed. Status, listings, config inspection, QEMU smoke-source validation, permission audit, usage, recent tasks, backup inventory, template inventory, storage inventory, snapshot inventory, guest network lookup, task wait, next-VMID lookup, task status/log, and pool resource audit live here.
+- **Tier 2 (gated guest reads + safe writes):** require an explicit `confirm: true` arg. Guest file/path/directory/service inspection, start, stop, reboot, snapshot create, run backup, create container, create VM, clone, in-container `exec`, in-container `write_file`, and guest service start/stop/restart live here. A tool call without the confirm flag throws `WriteGateError` before any HTTP traffic.
+- **Tier 3 (destructive):** require `confirm: true` + `destructive: true` + the env flag `PROXMOX_ENABLE_DESTRUCTIVE=1` on the MCP process. Permanent resource deletion, smoke pool cleanup, snapshot rollback/deletion, and non-graceful force-stop live here.
+
+### Destructive operations env gate
+
+Tier 3 destructive tools (`proxmox_destroy_resource`, `proxmox_cleanup_smoke_resources`, `proxmox_rollback_snapshot`, `proxmox_delete_snapshot`, `proxmox_force_stop_resource`) require an additional safety gate beyond the per-tool `confirm: true` + `destructive: true` args: the env var `PROXMOX_ENABLE_DESTRUCTIVE=1` must be set on the MCP process. Without it, the tools throw `WriteGateError` before any HTTP call is made. `proxmox_cleanup_smoke_resources` defaults to `dry_run: true`, which previews targets without the destructive env gate.
+
+This is intentional: destructive ops are rare. The env flag is a coarse "I am actively doing smoke-test cycles" toggle. Leave it unset day to day; flip it only when actively destroying resources is part of the workflow.
+
+**API token scope recommendation:** start with a read-only token (PVE `Datastore.Audit` + `VM.Audit` + `Sys.Audit`) and verify the read tools work end to end. Grade up to write privileges (`VM.PowerMgmt`, `VM.Snapshot`, `VM.Backup`) only after you have confirmed the redactor is masking your secret in your transcripts and that the model is honoring the confirm gate. Tokens are tied to a PVE user and can be revoked instantly from Datacenter > Permissions > API Tokens.
+
+The `PROXMOX_TLS_INSECURE=true` toggle exists for homelab self-signed certs. Leave it `false` in any environment with a real CA-signed cert.
+
+Full security policy, reporting, and in-scope/out-of-scope detail in [SECURITY.md](SECURITY.md).
 
 ## Live smoke testing
 
@@ -199,118 +369,14 @@ Audit or clean leftover smoke resources:
 # tool: proxmox_cleanup_smoke_resources { "dry_run": false, "confirm": true, "destructive": true }
 ```
 
-## Install
+## Contributing
 
-```
-npm install -g @solomonneas/proxmox-mcp
-```
+Bug reports and patches are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for what lands easily, local dev, and the safety rules every change must keep. By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-Or run via npx:
+## Changelog
 
-```
-npx -y @solomonneas/proxmox-mcp
-```
-
-## Setup
-
-### Claude Desktop
-
-`~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
-
-```json
-{
-  "mcpServers": {
-    "proxmox": {
-      "command": "npx",
-      "args": ["-y", "@solomonneas/proxmox-mcp"],
-      "env": {
-        "PROXMOX_URL": "https://pve.example.local:8006",
-        "PROXMOX_TOKEN_ID": "pve-admin@pam!api-token-1",
-        "PROXMOX_TOKEN_SECRET": "00000000-0000-0000-0000-000000000000",
-        "PROXMOX_TLS_INSECURE": "false"
-      }
-    }
-  }
-}
-```
-
-### Claude Code
-
-```bash
-claude mcp add proxmox -s user -- npx -y @solomonneas/proxmox-mcp
-```
-
-Then export env vars in your shell (`~/.bashrc`, `~/.zshrc`) or pass `--env` flags.
-
-### OpenClaw
-
-Plugin loads automatically once installed. Config goes in your `~/.openclaw/openclaw.json` `plugins.entries.proxmox` (or use the bundled `openclaw.plugin.json`):
-
-```json
-{
-  "plugins": {
-    "entries": {
-      "proxmox": {
-        "package": "@solomonneas/proxmox-mcp",
-        "activation": { "onStartup": true }
-      }
-    }
-  }
-}
-```
-
-Env vars from `~/.openclaw/workspace/.env` are inherited by the plugin.
-
-### Hermes Agent
-
-Add to `~/.config/hermes/agents.yaml`:
-
-```yaml
-mcp_servers:
-  proxmox:
-    command: npx
-    args: ["-y", "@solomonneas/proxmox-mcp"]
-    env:
-      PROXMOX_URL: https://pve.example.local:8006
-      PROXMOX_TOKEN_ID: pve-admin@pam!api-token-1
-      PROXMOX_TOKEN_SECRET: 00000000-0000-0000-0000-000000000000
-      PROXMOX_TLS_INSECURE: "false"
-```
-
-### Codex CLI
-
-`~/.codex/config.toml`:
-
-```toml
-[mcp_servers.proxmox]
-command = "npx"
-args = ["-y", "@solomonneas/proxmox-mcp"]
-
-[mcp_servers.proxmox.env]
-PROXMOX_URL = "https://pve.example.local:8006"
-PROXMOX_TOKEN_ID = "pve-admin@pam!api-token-1"
-PROXMOX_TOKEN_SECRET = "00000000-0000-0000-0000-000000000000"
-PROXMOX_TLS_INSECURE = "false"
-```
-
-## Safety
-
-This MCP uses the same three-tier write-gating pattern as the rest of the `solomonneas/*-mcp` family:
-
-- **Tier 1 (reads):** open. No confirm flag needed. Status, listings, config inspection, QEMU smoke-source validation, permission audit, usage, recent tasks, backup inventory, template inventory, storage inventory, snapshot inventory, guest network lookup, task wait, next-VMID lookup, and pool resource audit live here.
-- **Tier 2 (gated guest reads + safe writes):** require an explicit `confirm: true` arg. Guest file/path/directory/service inspection, start, stop, reboot, snapshot create, run backup, create container, create VM, clone, in-container `exec`, in-container `write_file`, and guest service actions live here. A hallucinated tool call without the confirm flag throws `WriteGateError` before any HTTP traffic.
-- **Tier 3 (destructive):** require `confirm: true` + `destructive: true` + the env flag `PROXMOX_ENABLE_DESTRUCTIVE=1` on the MCP process. Permanent resource deletion, smoke pool cleanup, snapshot rollback/deletion, and non-graceful force-stop live here.
-
-### Destructive operations env gate
-
-Tier 3 destructive tools (`proxmox_destroy_resource`, `proxmox_cleanup_smoke_resources`, `proxmox_rollback_snapshot`, `proxmox_delete_snapshot`, `proxmox_force_stop_resource`) require an additional safety gate beyond the per-tool `confirm: true` + `destructive: true` args: the env var `PROXMOX_ENABLE_DESTRUCTIVE=1` must be set on the MCP process. Without it, the tools throw `WriteGateError` before any HTTP call is made. `proxmox_cleanup_smoke_resources` defaults to `dry_run:true`, which previews targets without the destructive env gate.
-
-This is intentional: destructive ops are rare. The env flag is a coarse "I am actively doing smoke-test cycles" toggle. Leave it unset day-to-day; flip it only when actively destroying resources is part of the workflow.
-
-**API token scope recommendation:** start with a read-only token (PVE Datastore.Audit + VM.Audit + Sys.Audit) and verify the read tools work end-to-end. Grade up to write privileges (VM.PowerMgmt, VM.Snapshot, VM.Backup) only after you've confirmed the redactor is masking your secret in your transcripts and that the model is honoring the confirm gate. Tokens are tied to a PVE user and can be revoked instantly from the Datacenter > Permissions > API Tokens UI.
-
-The `PROXMOX_TLS_INSECURE=true` toggle exists for homelab self-signed certs. Leave it `false` in any environment with a real CA-signed cert.
+See [CHANGELOG.md](CHANGELOG.md) for the release history.
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
