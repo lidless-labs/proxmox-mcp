@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/proxmox-mcp-banner.jpg" alt="proxmox-mcp banner" width="900">
+</p>
+
 <h1 align="center">proxmox-mcp</h1>
 
 <p align="center">
@@ -9,14 +13,14 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/npm/v/@solomonneas/proxmox-mcp?style=for-the-badge&label=npm" alt="npm version">
-  <img src="https://img.shields.io/github/actions/workflow/status/lidless-labs/proxmox-mcp/ci.yml?branch=master&style=for-the-badge&label=ci" alt="CI status">
-  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT license">
-  <img src="https://img.shields.io/badge/MCP-server-7c3aed?style=for-the-badge" alt="MCP server">
+  <a href="https://lidless.dev/proxmox-mcp"><strong>Website &amp; docs &rarr; lidless.dev/proxmox-mcp</strong></a>
 </p>
 
 <p align="center">
-  <a href="https://lidless.dev/proxmox-mcp"><strong>Website &amp; docs &rarr; lidless.dev/proxmox-mcp</strong></a>
+  <img src="https://img.shields.io/npm/v/@solomonneas/proxmox-mcp?style=for-the-badge&logo=npm&label=npm" alt="npm version">
+  <img src="https://img.shields.io/github/actions/workflow/status/lidless-labs/proxmox-mcp/ci.yml?branch=master&style=for-the-badge&label=ci" alt="CI status">
+  <img src="https://img.shields.io/badge/MCP-server-8A2BE2?style=for-the-badge" alt="MCP server">
+  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT license">
 </p>
 
 ## What it does
@@ -134,20 +138,6 @@ claude mcp add proxmox -s user -- npx -y @solomonneas/proxmox-mcp
 Then ask your agent to list your cluster's containers. Reads work with nothing but the three credential vars; write and destructive tiers stay gated until you opt in.
 
 > Note: the latest version published to npm is `0.3.0`. This repository tracks ahead of npm; install pins the published release.
-
-## Why not the alternatives?
-
-- **The Proxmox web UI** is the canonical control plane and you should keep it. proxmox-mcp is not a replacement; it is the agent-facing read/operate surface so an AI client can inventory, trace, and operate the cluster in the same loop it is already running, without you driving a browser.
-- **Hand-rolling Proxmox API calls in your agent** works, but the agent has to manage token auth, the redactor, retry, task polling, and (critically) safety on its own. proxmox-mcp ships the token redactor, structured MCP error payloads, and the three-tier write gate so a careless or hallucinated call fails closed instead of deleting a guest.
-- **A general "run any HTTP request" MCP tool** gives a model unbounded access to the Proxmox API with no guardrails. proxmox-mcp is the opposite: a fixed, named tool surface where every state change is gated and every destructive op needs an explicit process-level env flag.
-- **Terraform / Ansible / `pct` + `qm`** are the right tools for declarative, reviewed, repeatable infrastructure. proxmox-mcp is for interactive, agent-driven inspection and operation, not for codifying your cluster.
-
-## What proxmox-mcp is not
-
-- It is **not a tool for blind automation of destructive operations.** The destructive tier exists for deliberate, supervised work (smoke-test cycles, intentional teardown), not for unattended agents. The `PROXMOX_ENABLE_DESTRUCTIVE=1` flag is a coarse "I am actively doing this right now" toggle; leave it unset day to day.
-- It is **not a Proxmox cluster manager or orchestrator.** It does not schedule, it does not run in the background, and it holds no state of its own. It translates MCP tool calls into Proxmox API calls and SSH commands, and that is all.
-- It is **not a substitute for least-privilege tokens.** The write gate is a guardrail against a misbehaving model, not a substitute for a properly scoped Proxmox API token. Start read-only and grade up. See [SECURITY.md](SECURITY.md).
-- It is **not stable yet.** It is WIP, pre-1.0, and the tool surface can change between minor versions.
 
 ## Configuration
 
@@ -368,6 +358,20 @@ Audit or clean leftover smoke resources:
 # Actual cleanup waits for delete tasks and skips running guests unless force:true
 # tool: proxmox_cleanup_smoke_resources { "dry_run": false, "confirm": true, "destructive": true }
 ```
+
+## Why not the alternatives?
+
+- **The Proxmox web UI** is the canonical control plane and you should keep it. proxmox-mcp is not a replacement; it is the agent-facing read/operate surface so an AI client can inventory, trace, and operate the cluster in the same loop it is already running, without you driving a browser.
+- **Hand-rolling Proxmox API calls in your agent** works, but the agent has to manage token auth, the redactor, retry, task polling, and (critically) safety on its own. proxmox-mcp ships the token redactor, structured MCP error payloads, and the three-tier write gate so a careless or hallucinated call fails closed instead of deleting a guest.
+- **A general "run any HTTP request" MCP tool** gives a model unbounded access to the Proxmox API with no guardrails. proxmox-mcp is the opposite: a fixed, named tool surface where every state change is gated and every destructive op needs an explicit process-level env flag.
+- **Terraform / Ansible / `pct` + `qm`** are the right tools for declarative, reviewed, repeatable infrastructure. proxmox-mcp is for interactive, agent-driven inspection and operation, not for codifying your cluster.
+
+## What proxmox-mcp is not
+
+- It is **not a tool for blind automation of destructive operations.** The destructive tier exists for deliberate, supervised work (smoke-test cycles, intentional teardown), not for unattended agents. The `PROXMOX_ENABLE_DESTRUCTIVE=1` flag is a coarse "I am actively doing this right now" toggle; leave it unset day to day.
+- It is **not a Proxmox cluster manager or orchestrator.** It does not schedule, it does not run in the background, and it holds no state of its own. It translates MCP tool calls into Proxmox API calls and SSH commands, and that is all.
+- It is **not a substitute for least-privilege tokens.** The write gate is a guardrail against a misbehaving model, not a substitute for a properly scoped Proxmox API token. Start read-only and grade up. See [SECURITY.md](SECURITY.md).
+- It is **not stable yet.** It is WIP, pre-1.0, and the tool surface can change between minor versions.
 
 ## Contributing
 
