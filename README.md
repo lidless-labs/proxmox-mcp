@@ -177,6 +177,32 @@ Per-VM overrides (read at execute time, no MCP restart needed):
 
 For QEMU VMs without a per-VM env override, install `qemu-guest-agent` in the VM and enable it with `qm set <vmid> --agent 1` so the IP can be discovered automatically.
 
+## CLI
+
+The same package ships a read-only operator CLI, `proxops`, for shells, cron, and CI. It shares the `ProxmoxClient` core with the MCP server and reads the same env config (`PROXMOX_URL`, `PROXMOX_TOKEN_ID`, `PROXMOX_TOKEN_SECRET`, `PROXMOX_TLS_INSECURE`). It exposes only read/inventory/audit operations; every lifecycle, snapshot, backup, and exec action stays in the MCP/plugin surface behind the safety gates.
+
+```bash
+npx @solomonneas/proxmox-mcp@latest status
+# or, installed globally:
+proxops status                       # PVE version + per-node status (exit 1 if a node is offline)
+proxops vms list
+proxops containers list
+proxops vm config 100
+proxops storage list --node pve
+proxops backups list --vmid 100
+proxops snapshots list 100
+proxops audit-permissions
+proxops recent-tasks --limit 20
+proxops task status UPID:pve:...
+proxops vms list --json              # raw JSON for piping
+```
+
+Run `proxops help` for the full command list. `--json` emits raw JSON instead of the concise summary. Exit codes: `0` success, `1` runtime error (backend unreachable / call failed, and `status` when a node is offline), `2` usage error (unknown command/flag or bad value).
+
+### Starting the MCP server
+
+`proxops mcp` (or the back-compat `proxmox-mcp` bin) starts the stdio MCP server. If a launcher referenced the file path `dist/mcp-server.js` directly, it keeps working; new launchers can point at `dist/mcp-bin.js` (or `dist/cli.js mcp`). Launchers that use the `proxmox-mcp` bin name need no change.
+
 ## Setup
 
 ### Claude Desktop

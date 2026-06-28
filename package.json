@@ -17,12 +17,13 @@
     }
   },
   "bin": {
-    "proxmox-mcp": "./dist/mcp-server.js"
+    "proxops": "./dist/cli.js",
+    "proxmox-mcp": "./dist/mcp-bin.js"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsup",
-    "start": "node dist/mcp-server.js",
+    "start": "node dist/cli.js mcp",
     "dev": "tsx mcp-server.ts",
     "smoke:live": "tsx scripts/live-smoke.ts",
     "test": "vitest run",
