@@ -8,7 +8,10 @@ import { registerSecret, redact } from "./src/security.ts";
 import type { SshExecutor } from "./src/tools/_util.ts";
 import * as toolFactories from "./src/tools/index.ts";
 import { classifyToolError } from "./src/errors.ts";
+import { realpathSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
+export async function startServer(): Promise<void> {
 const cfg: ProxmoxConfig = resolveConfig(process.env);
 registerSecret(cfg.tokenId);
 registerSecret(cfg.tokenSecret);
@@ -120,3 +123,22 @@ const transport = new StdioServerTransport();
     return __send(message);
   };
 await server.connect(transport);
+}
+
+// True when this module is the process entrypoint (symlink-safe).
+const isEntrypoint = (() => {
+  const arg = process.argv[1];
+  if (typeof arg !== "string") return false;
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(arg)).href;
+  } catch {
+    return false;
+  }
+})();
+
+if (isEntrypoint) {
+  startServer().catch((error: unknown) => {
+    console.error(`proxmox-mcp fatal: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  });
+}
