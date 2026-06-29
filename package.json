@@ -17,6 +17,7 @@
     }
   },
   "bin": {
+    "proxmoxctl": "./dist/cli.js",
     "proxops": "./dist/cli.js",
     "proxmox-mcp": "./dist/mcp-bin.js"
   },

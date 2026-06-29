@@ -59,10 +59,10 @@ const COMMANDS: Record<string, CommandSpec> = {
 
 const TWO_WORD = new Set(["vms", "containers", "vm", "container", "resource", "storage", "backups", "snapshots", "templates", "task"]);
 
-export const HELP = `proxops - read-only operator CLI for Proxmox VE (shares the proxmox-mcp core)
+export const HELP = `proxmoxctl - read-only Proxmox VE control CLI (alias: proxops; shares the proxmox-mcp core)
 
 Usage:
-  proxops <command> [options]
+  proxmoxctl <command> [options]
 
 Inventory:
   status                       PVE version + per-node status (exit 1 if a node is offline)
