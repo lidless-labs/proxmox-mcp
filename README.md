@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/proxmox-mcp-banner.jpg" alt="proxmox-mcp banner" width="900">
+  <img src="docs/assets/proxmox-mcp-social-preview.jpg" alt="proxmox-mcp banner" width="900">
 </p>
 
 <h1 align="center">proxmox-mcp</h1>
@@ -17,8 +17,8 @@
 </p>
 
 <p align="center">
-  <img src="https://shieldcn.dev/npm/@solomonneas/proxmox-mcp.svg" alt="npm version">
   <img src="https://shieldcn.dev/github/ci/lidless-labs/proxmox-mcp.svg?branch=master&workflow=ci.yml" alt="CI status">
+  <img src="https://shieldcn.dev/npm/@solomonneas/proxmox-mcp.svg" alt="npm version">
   <img src="https://shieldcn.dev/badge/MCP-server-8A2BE2.svg" alt="MCP server">
   <img src="https://shieldcn.dev/badge/license-MIT-green.svg" alt="MIT license">
 </p>
