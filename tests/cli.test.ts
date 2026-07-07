@@ -25,10 +25,10 @@ describe("parseArgs", () => {
     expect(HELP).toContain("proxmoxctrl - read-only Proxmox VE control CLI");
     expect(HELP).toContain("aliases: proxmoxctl, proxops");
     expect(packageJson.bin).toMatchObject({
-      proxmoxctrl: "./dist/cli.js",
-      proxmoxctl: "./dist/cli.js",
-      proxops: "./dist/cli.js",
-      "proxmox-mcp": "./dist/mcp-bin.js",
+      proxmoxctrl: "dist/cli.js",
+      proxmoxctl: "dist/cli.js",
+      proxops: "dist/cli.js",
+      "proxmox-mcp": "dist/mcp-bin.js",
     });
   });
 
