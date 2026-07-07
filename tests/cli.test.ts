@@ -1,6 +1,11 @@
+import { readFileSync } from "node:fs";
 import { describe, it, expect, vi } from "vitest";
-import { UsageError, parseArgs, run, type CliDeps } from "../cli.ts";
+import { HELP, UsageError, parseArgs, run, type CliDeps } from "../cli.ts";
 import type { ProxmoxClient } from "../src/proxmox-client.ts";
+
+const packageJson = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+) as { bin?: Record<string, string> };
 
 function capture(get: (path: string) => Promise<unknown>, serve = vi.fn().mockResolvedValue(undefined)) {
   const out: string[] = [];
@@ -16,6 +21,17 @@ function capture(get: (path: string) => Promise<unknown>, serve = vi.fn().mockRe
 }
 
 describe("parseArgs", () => {
+  it("documents proxmoxctrl as the primary CLI and keeps compatibility aliases", () => {
+    expect(HELP).toContain("proxmoxctrl - read-only Proxmox VE control CLI");
+    expect(HELP).toContain("aliases: proxmoxctl, proxops");
+    expect(packageJson.bin).toMatchObject({
+      proxmoxctrl: "./dist/cli.js",
+      proxmoxctl: "./dist/cli.js",
+      proxops: "./dist/cli.js",
+      "proxmox-mcp": "./dist/mcp-bin.js",
+    });
+  });
+
   it("routes single and two-word commands", () => {
     expect(parseArgs(["status"])).toEqual({ kind: "run", command: "status", toolArgs: {}, json: false, health: true });
     expect(parseArgs(["vms", "list"])).toEqual({ kind: "run", command: "vms list", toolArgs: {}, json: false, health: false });

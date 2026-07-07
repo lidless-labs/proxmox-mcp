@@ -5,7 +5,7 @@
 <h1 align="center">proxmox-mcp</h1>
 
 <p align="center">
-  <strong>An MCP server that lets an AI client read and operate a Proxmox VE cluster, VMs, containers, and nodes, over plain API-token auth.</strong>
+  <strong>A Proxmox VE operator CLI and MCP adapter for reading and safely operating clusters, VMs, containers, and nodes over plain API-token auth.</strong>
 </p>
 
 <p align="center">
@@ -25,7 +25,7 @@
 
 ## What it does
 
-proxmox-mcp is an open-source [Model Context Protocol](https://modelcontextprotocol.io) server for [Proxmox VE](https://www.proxmox.com/en/proxmox-virtual-environment/overview), the open-source virtualization platform. It gives an AI client (Claude Desktop, Claude Code, OpenClaw, Codex CLI, or any MCP host) a structured, gated interface to a Proxmox cluster: inventory VMs and LXC containers, inspect node and storage status, read RRD metrics, trace tasks, manage snapshots and backups, run gated reads and shell commands inside guests, and provision, clone, or destroy resources, all over Proxmox API-token auth.
+proxmoxctrl is an open-source operator CLI for [Proxmox VE](https://www.proxmox.com/en/proxmox-virtual-environment/overview), the open-source virtualization platform. The same package ships `proxmox-mcp`, a [Model Context Protocol](https://modelcontextprotocol.io) adapter for AI clients (Claude Desktop, Claude Code, OpenClaw, Codex CLI, or any MCP host). Together they provide a structured, gated interface to a Proxmox cluster: inventory VMs and LXC containers, inspect node and storage status, read RRD metrics, trace tasks, manage snapshots and backups, run gated reads and shell commands inside guests, and provision, clone, or destroy resources, all over Proxmox API-token auth.
 
 It is built for homelab and virtualization operators who want to point an agent at their cluster without handing it a root shell. The differentiator is the write-safety model: 42 tools split across four tiers, where reads need nothing, safe writes need `confirm: true`, and destructive operations need `confirm: true` + `destructive: true` + a process-level `PROXMOX_ENABLE_DESTRUCTIVE=1` env flag. A hallucinated or careless tool call fails closed, before any HTTP traffic reaches Proxmox.
 
@@ -179,29 +179,29 @@ For QEMU VMs without a per-VM env override, install `qemu-guest-agent` in the VM
 
 ## CLI
 
-The same package ships a read-only **control CLI**, `proxmoxctl` (alias `proxops`), for shells, cron, and CI. It shares the `ProxmoxClient` core with the MCP server and reads the same env config (`PROXMOX_URL`, `PROXMOX_TOKEN_ID`, `PROXMOX_TOKEN_SECRET`, `PROXMOX_TLS_INSECURE`). It exposes only read/inventory/audit operations; every lifecycle, snapshot, backup, and exec action stays in the MCP/plugin surface behind the safety gates.
+The same package ships a read-only **control CLI**, `proxmoxctrl`, for shells, cron, and CI. Compatibility aliases `proxmoxctl` and `proxops` still point at the same binary. It shares the `ProxmoxClient` core with the MCP adapter and reads the same env config (`PROXMOX_URL`, `PROXMOX_TOKEN_ID`, `PROXMOX_TOKEN_SECRET`, `PROXMOX_TLS_INSECURE`). It exposes only read/inventory/audit operations; every lifecycle, snapshot, backup, and exec action stays in the MCP/plugin surface behind the safety gates.
 
 ```bash
 npx @solomonneas/proxmox-mcp@latest status
 # or, installed globally:
-proxmoxctl status                       # PVE version + per-node status (exit 1 if a node is offline)
-proxmoxctl vms list
-proxmoxctl containers list
-proxmoxctl vm config 100
-proxmoxctl storage list --node pve
-proxmoxctl backups list --vmid 100
-proxmoxctl snapshots list 100
-proxmoxctl audit-permissions
-proxmoxctl recent-tasks --limit 20
-proxmoxctl task status UPID:pve:...
-proxmoxctl vms list --json              # raw JSON for piping
+proxmoxctrl status                      # PVE version + per-node status (exit 1 if a node is offline)
+proxmoxctrl vms list
+proxmoxctrl containers list
+proxmoxctrl vm config 100
+proxmoxctrl storage list --node pve
+proxmoxctrl backups list --vmid 100
+proxmoxctrl snapshots list 100
+proxmoxctrl audit-permissions
+proxmoxctrl recent-tasks --limit 20
+proxmoxctrl task status UPID:pve:...
+proxmoxctrl vms list --json             # raw JSON for piping
 ```
 
-Run `proxmoxctl help` for the full command list. `--json` emits raw JSON instead of the concise summary. Exit codes: `0` success, `1` runtime error (backend unreachable / call failed, and `status` when a node is offline), `2` usage error (unknown command/flag or bad value).
+Run `proxmoxctrl help` for the full command list. `--json` emits raw JSON instead of the concise summary. Exit codes: `0` success, `1` runtime error (backend unreachable / call failed, and `status` when a node is offline), `2` usage error (unknown command/flag or bad value).
 
 ### Starting the MCP server
 
-`proxmoxctl mcp` (or the back-compat `proxmox-mcp` bin) starts the stdio MCP server. If a launcher referenced the file path `dist/mcp-server.js` directly, it keeps working; new launchers can point at `dist/mcp-bin.js` (or `dist/cli.js mcp`). Launchers that use the `proxmox-mcp` bin name need no change.
+`proxmoxctrl mcp` (or the back-compat `proxmox-mcp` bin) starts the stdio MCP server. If a launcher referenced the file path `dist/mcp-server.js` directly, it keeps working; new launchers can point at `dist/mcp-bin.js` (or `dist/cli.js mcp`). Launchers that use the `proxmox-mcp` bin name need no change.
 
 ## Setup
 
