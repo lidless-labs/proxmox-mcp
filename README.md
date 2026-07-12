@@ -54,6 +54,10 @@ A real MCP client config. Drop this into Claude Desktop (`claude_desktop_config.
 
 Tier markers below are authoritative: each tool's gate is enforced in code (`src/gates.ts` + per-tool schema), and `WriteGateError` fires before any HTTP call when a gate is unmet.
 
+![proxmox-mcp safety workflow: read tools inventory the cluster and trace tasks, guest reads require confirmation, safe writes stay gated, and destructive tools need the full three-part gate](docs/assets/proxmox-safety-workflow.svg)
+
+Generated from [`docs/assets/workflows/proxmox-safety.json`](docs/assets/workflows/proxmox-safety.json) with the [Lidless fleet-kit workflow renderer](https://github.com/lidless-labs/lidless-fleet-kit/tree/main/workflow).
+
 | Tool | Tier | Notes |
 | --- | --- | --- |
 | `proxmox_status` | 1 read | Cluster + node status. |
