@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { ClientFactory } from "./_util.ts";
-import { jsonToolResult, validateToolArgs } from "./_util.ts";
+import { jsonToolResult, validateToolArgs, assertSafePathSegment } from "./_util.ts";
 import { assertConfirmedWrite } from "../gates.ts";
 import { registerSecret } from "../security.ts";
 import { taskWaitFields, resolveTaskWait, type TaskWaitArgs } from "./task-wait.ts";
@@ -115,7 +115,9 @@ export function createProxmoxCreateContainerTool(getClient: ClientFactory) {
       }
       const client = getClient();
       let node = args.node;
-      if (!node) {
+      if (node) {
+        assertSafePathSegment(node, "node");
+      } else {
         const nodes = await client.get<NodeResource[]>("/cluster/resources?type=node");
         if (nodes.length === 0) throw new Error("no nodes found in cluster resources");
         node = nodes[0].node;
