@@ -82,6 +82,8 @@ export default definePluginEntry({
     register(tools.createProxmoxListDisksTool(getClient));
     register(tools.createProxmoxListFirewallRulesTool(getClient));
     register(tools.createProxmoxGetFirewallOptionsTool(getClient));
+    register(tools.createProxmoxListStorageConfigTool(getClient));
+    register(tools.createProxmoxListBackupJobsTool(getClient));
     // Safe writes
     register(tools.createProxmoxStartResourceTool(getClient));
     register(tools.createProxmoxStopResourceTool(getClient));
@@ -100,6 +102,10 @@ export default definePluginEntry({
     register(tools.createProxmoxResizeDiskTool(getClient));
     register(tools.createProxmoxRestoreBackupTool(getClient));
     register(tools.createProxmoxMigrateResourceTool(getClient));
+    register(tools.createProxmoxMoveDiskTool(getClient));
+    register(tools.createProxmoxCreateStorageTool(getClient));
+    register(tools.createProxmoxCreateBackupJobTool(getClient));
+    register(tools.createProxmoxDeleteBackupJobTool(getClient));
     register(tools.createProxmoxDownloadUrlTool(getClient));
     register(tools.createProxmoxCancelTaskTool(getClient));
     register(tools.createProxmoxAddFirewallRuleTool(getClient));
@@ -123,5 +129,6 @@ export default definePluginEntry({
     register(tools.createProxmoxForceStopResourceTool(getClient));
     register(tools.createProxmoxDeleteVolumeTool(getClient));
     register(tools.createProxmoxNodePowerTool(getClient));
+    register(tools.createProxmoxDeleteStorageTool(getClient));
   },
 });

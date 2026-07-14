@@ -62,3 +62,10 @@ export { createProxmoxGetFirewallOptionsTool } from "./proxmox_get_firewall_opti
 export { createProxmoxAddFirewallRuleTool } from "./proxmox_add_firewall_rule.ts";
 export { createProxmoxDeleteFirewallRuleTool } from "./proxmox_delete_firewall_rule.ts";
 export { createProxmoxSetFirewallEnabledTool } from "./proxmox_set_firewall_enabled.ts";
+export { createProxmoxMoveDiskTool } from "./proxmox_move_disk.ts";
+export { createProxmoxListStorageConfigTool } from "./proxmox_list_storage_config.ts";
+export { createProxmoxCreateStorageTool } from "./proxmox_create_storage.ts";
+export { createProxmoxDeleteStorageTool } from "./proxmox_delete_storage.ts";
+export { createProxmoxListBackupJobsTool } from "./proxmox_list_backup_jobs.ts";
+export { createProxmoxCreateBackupJobTool } from "./proxmox_create_backup_job.ts";
+export { createProxmoxDeleteBackupJobTool } from "./proxmox_delete_backup_job.ts";

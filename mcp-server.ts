@@ -96,11 +96,18 @@ const tools = [
   toolFactories.createProxmoxAddFirewallRuleTool(getClient),
   toolFactories.createProxmoxDeleteFirewallRuleTool(getClient),
   toolFactories.createProxmoxSetFirewallEnabledTool(getClient),
+  toolFactories.createProxmoxMoveDiskTool(getClient),
+  toolFactories.createProxmoxListStorageConfigTool(getClient),
+  toolFactories.createProxmoxCreateStorageTool(getClient),
+  toolFactories.createProxmoxDeleteStorageTool(getClient),
+  toolFactories.createProxmoxListBackupJobsTool(getClient),
+  toolFactories.createProxmoxCreateBackupJobTool(getClient),
+  toolFactories.createProxmoxDeleteBackupJobTool(getClient),
 ];
 
 const toolMap = new Map(tools.map((t) => [t.name, t]));
 
-const server = new Server({ name: "proxmox-mcp", version: "0.8.0" }, { capabilities: { tools: {} } });
+const server = new Server({ name: "proxmox-mcp", version: "0.9.0" }, { capabilities: { tools: {} } });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.parameters })),
