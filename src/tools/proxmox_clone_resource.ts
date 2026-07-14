@@ -2,6 +2,7 @@ import { Type } from "@sinclair/typebox";
 import type { ClientFactory } from "./_util.ts";
 import { jsonToolResult, resolveResource, validateToolArgs } from "./_util.ts";
 import { assertConfirmedWrite } from "../gates.ts";
+import { taskWaitFields, resolveTaskWait, type TaskWaitArgs } from "./task-wait.ts";
 
 const Schema = Type.Object(
   {
@@ -29,6 +30,7 @@ const Schema = Type.Object(
     confirm: Type.Boolean({
       description: "Must be true to write. Tier-2 safe-write gate.",
     }),
+    ...taskWaitFields,
   },
   { additionalProperties: false },
 );
@@ -55,7 +57,7 @@ export function createProxmoxCloneResourceTool(getClient: ClientFactory) {
         snapname?: string;
         description?: string;
         confirm: boolean;
-      }>(Schema, raw, NAME);
+      } & TaskWaitArgs>(Schema, raw, NAME);
       const client = getClient();
       const { node, type } = await resolveResource(client, args.source_vmid);
       const body: Record<string, unknown> = {
@@ -82,6 +84,7 @@ export function createProxmoxCloneResourceTool(getClient: ClientFactory) {
         `/nodes/${node}/${type}/${args.source_vmid}/clone`,
         body,
       );
+      const task = await resolveTaskWait(client, upid, args);
       return jsonToolResult({
         source_vmid: args.source_vmid,
         new_vmid: args.new_vmid,
@@ -89,6 +92,7 @@ export function createProxmoxCloneResourceTool(getClient: ClientFactory) {
         type,
         name: args.name,
         upid,
+        ...(task ? { task } : {}),
       });
     },
   };

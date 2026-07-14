@@ -2,7 +2,8 @@ import { Type } from "@sinclair/typebox";
 import type { ClientFactory, SshExecutorFactory } from "./_util.ts";
 import { jsonToolResult, resolveResource, validateToolArgs } from "./_util.ts";
 import { assertConfirmedWrite } from "../gates.ts";
-import { missingQemuSshHostMessage, qemuSshTarget, resolveQemuSshHost, type VmSshDefaults } from "./ssh-target.ts";
+import { type VmSshDefaults } from "./ssh-target.ts";
+import { execInQemuGuest } from "./guest-command.ts";
 
 const Schema = Type.Object(
   {
@@ -48,11 +49,7 @@ export function createProxmoxReadFileTool(
       if (type === "lxc") {
         result = await ssh.execInLxc(args.vmid, command, timeoutMs);
       } else {
-        const host = await resolveQemuSshHost(client, node, args.vmid);
-        if (!host) {
-          throw new Error(missingQemuSshHostMessage(args.vmid));
-        }
-        result = await ssh.execViaDirectSsh(qemuSshTarget(args.vmid, host, vmDefaults), command, timeoutMs);
+        result = await execInQemuGuest(client, ssh, node, args.vmid, command, timeoutMs, vmDefaults);
       }
       if (result.exitCode !== 0) {
         throw new Error(result.stderr.trim() || `read_file failed with exit code ${result.exitCode}`);

@@ -1,0 +1,28 @@
+{
+  "kicker": "PROXMOX-MCP · SAFETY MODEL",
+  "title": "read the cluster first, gate every change",
+  "subtitle": "Inventory and task lookup are open. Guest reads and writes require confirmation, while destructive tools require the full three-part gate.",
+  "footer": "read open · confirm writes · destructive flag required",
+  "lanes": [
+    { "id": "read", "label": "READ" },
+    { "id": "guest", "label": "GUEST" },
+    { "id": "write", "label": "WRITE" },
+    { "id": "destroy", "label": "DESTRUCTIVE" }
+  ],
+  "nodes": [
+    { "id": "inventory", "lane": "read", "row": 0, "title": "inventory cluster", "meta": "nodes, VMs, LXC, storage", "status": "source" },
+    { "id": "tasks", "lane": "read", "row": 1, "title": "trace tasks", "meta": "UPID status and logs" },
+    { "id": "guestRead", "lane": "guest", "row": 0, "title": "guest reads", "meta": "confirm before file or service state", "status": "gate" },
+    { "id": "safeWrite", "lane": "write", "row": 0, "title": "safe writes", "meta": "start, stop, snapshot, backup", "status": "focus" },
+    { "id": "exec", "lane": "write", "row": 1, "title": "in-guest exec", "meta": "confirm before command" },
+    { "id": "destructive", "lane": "destroy", "row": 0, "title": "three-part gate", "meta": "confirm + destructive + env", "status": "gate" }
+  ],
+  "edges": [
+    { "from": "inventory", "to": "tasks" },
+    { "from": "inventory", "to": "guestRead" },
+    { "from": "guestRead", "to": "safeWrite" },
+    { "from": "safeWrite", "to": "exec" },
+    { "from": "safeWrite", "to": "destructive" },
+    { "from": "exec", "to": "destructive" }
+  ]
+}

@@ -100,6 +100,19 @@ describe("ProxmoxClient", () => {
     expect(fake.requests[0].method).toBe("DELETE");
   });
 
+  it("PUT method form-encodes body with correct verb + content-type", async () => {
+    fake = await startFakeProxmox([
+      { method: "PUT", path: "/api2/json/nodes/pve/qemu/100/config", status: 200, body: { data: null } },
+    ]);
+    const c = new ProxmoxClient({ url: fake.baseUrl, tokenId: "u@pam!t", tokenSecret: "s", tlsInsecure: false });
+    await c.put("/nodes/pve/qemu/100/config", { cores: 4, memory: 2048 });
+    expect(fake.requests[0].method).toBe("PUT");
+    expect(fake.requests[0].contentType).toBe("application/x-www-form-urlencoded");
+    const parsed = new URLSearchParams(fake.requests[0].body);
+    expect(parsed.get("cores")).toBe("4");
+    expect(parsed.get("memory")).toBe("2048");
+  });
+
   it("does not leak token in thrown error messages", async () => {
     fake = await startFakeProxmox([
       { method: "GET", path: "/api2/json/version", status: 401, body: { message: "unauthorized" } },

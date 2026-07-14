@@ -74,11 +74,33 @@ const tools = [
   toolFactories.createProxmoxServiceStartTool(getClient, getSsh, vmDefaults),
   toolFactories.createProxmoxServiceStopTool(getClient, getSsh, vmDefaults),
   toolFactories.createProxmoxServiceRestartTool(getClient, getSsh, vmDefaults),
+  toolFactories.createProxmoxUpdateVmConfigTool(getClient),
+  toolFactories.createProxmoxUpdateContainerConfigTool(getClient),
+  toolFactories.createProxmoxResizeDiskTool(getClient),
+  toolFactories.createProxmoxRestoreBackupTool(getClient),
+  toolFactories.createProxmoxMigrateResourceTool(getClient),
+  toolFactories.createProxmoxSuspendResourceTool(getClient),
+  toolFactories.createProxmoxResumeResourceTool(getClient),
+  toolFactories.createProxmoxResetResourceTool(getClient),
+  toolFactories.createProxmoxConvertToTemplateTool(getClient),
+  toolFactories.createProxmoxListStorageContentTool(getClient),
+  toolFactories.createProxmoxDownloadUrlTool(getClient),
+  toolFactories.createProxmoxDeleteVolumeTool(getClient),
+  toolFactories.createProxmoxListNodeServicesTool(getClient),
+  toolFactories.createProxmoxListUpdatesTool(getClient),
+  toolFactories.createProxmoxListDisksTool(getClient),
+  toolFactories.createProxmoxCancelTaskTool(getClient),
+  toolFactories.createProxmoxNodePowerTool(getClient),
+  toolFactories.createProxmoxListFirewallRulesTool(getClient),
+  toolFactories.createProxmoxGetFirewallOptionsTool(getClient),
+  toolFactories.createProxmoxAddFirewallRuleTool(getClient),
+  toolFactories.createProxmoxDeleteFirewallRuleTool(getClient),
+  toolFactories.createProxmoxSetFirewallEnabledTool(getClient),
 ];
 
 const toolMap = new Map(tools.map((t) => [t.name, t]));
 
-const server = new Server({ name: "proxmox-mcp", version: "0.5.0" }, { capabilities: { tools: {} } });
+const server = new Server({ name: "proxmox-mcp", version: "0.8.0" }, { capabilities: { tools: {} } });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.parameters })),

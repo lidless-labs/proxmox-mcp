@@ -27,11 +27,11 @@
 
 proxmox-mcp is an open-source [Model Context Protocol](https://modelcontextprotocol.io) server for [Proxmox VE](https://www.proxmox.com/en/proxmox-virtual-environment/overview), the open-source virtualization platform. It gives an AI client (Claude Desktop, Claude Code, OpenClaw, Codex CLI, or any MCP host) a structured, gated interface to a Proxmox cluster: inventory VMs and LXC containers, inspect node and storage status, read RRD metrics, trace tasks, manage snapshots and backups, run gated reads and shell commands inside guests, and provision, clone, or destroy resources, all over Proxmox API-token auth.
 
-It is built for homelab and virtualization operators who want to point an agent at their cluster without handing it a root shell. The differentiator is the write-safety model: 42 tools split across four tiers, where reads need nothing, safe writes need `confirm: true`, and destructive operations need `confirm: true` + `destructive: true` + a process-level `PROXMOX_ENABLE_DESTRUCTIVE=1` env flag. A hallucinated or careless tool call fails closed, before any HTTP traffic reaches Proxmox.
+It is built for homelab and virtualization operators who want to point an agent at their cluster without handing it a root shell. The differentiator is the write-safety model: 64 tools split across four tiers, where reads need nothing, safe writes need `confirm: true`, and destructive operations need `confirm: true` + `destructive: true` + a process-level `PROXMOX_ENABLE_DESTRUCTIVE=1` env flag. A hallucinated or careless tool call fails closed, before any HTTP traffic reaches Proxmox.
 
 ## Proof
 
-A real MCP client config. Drop this into Claude Desktop (`claude_desktop_config.json`) and the 42 tools appear in the client. Reads work immediately; the destructive env gate stays off until you opt in.
+A real MCP client config. Drop this into Claude Desktop (`claude_desktop_config.json`) and the 64 tools appear in the client. Reads work immediately; the destructive env gate stays off until you opt in.
 
 ```json
 {
@@ -50,9 +50,13 @@ A real MCP client config. Drop this into Claude Desktop (`claude_desktop_config.
 }
 ```
 
-### Tool list (42 tools, verified against source)
+### Tool list (64 tools, verified against source)
 
 Tier markers below are authoritative: each tool's gate is enforced in code (`src/gates.ts` + per-tool schema), and `WriteGateError` fires before any HTTP call when a gate is unmet.
+
+![proxmox-mcp safety workflow: read tools inventory the cluster and trace tasks, guest reads require confirmation, safe writes stay gated, and destructive tools need the full three-part gate](docs/assets/proxmox-safety-workflow.svg)
+
+Generated from [`docs/assets/workflows/proxmox-safety.json`](docs/assets/workflows/proxmox-safety.json) with `lidless workflow`.
 
 | Tool | Tier | Notes |
 | --- | --- | --- |
@@ -76,6 +80,12 @@ Tier markers below are authoritative: each tool's gate is enforced in code (`src
 | `proxmox_list_pool_resources` | 1 read | Inspect resources assigned to a Proxmox pool, defaulting to `mcp-smoke`. |
 | `proxmox_get_task_status` | 1 read | Single UPID status lookup. |
 | `proxmox_get_task_log` | 1 read | Task log tail for a UPID. |
+| `proxmox_list_storage_content` | 1 read | List volumes on a storage: ISOs, templates, disk images, backups. |
+| `proxmox_list_node_services` | 1 read | Host systemd service states (pveproxy, pvedaemon, corosync). |
+| `proxmox_list_disks` | 1 read | Physical disks with model/size/SMART health/wearout. |
+| `proxmox_list_updates` | 1 read | Pending APT updates on a node (needs a Sys.Modify token). |
+| `proxmox_list_firewall_rules` | 1 read | Firewall rules at cluster/node/guest scope. |
+| `proxmox_get_firewall_options` | 1 read | Firewall enable state + default policy at a scope. |
 | `proxmox_read_file` | 2 gated guest read | Read a file from inside an LXC or QEMU VM (SSH + `cat`). Requires `confirm: true`. |
 | `proxmox_stat_path` | 2 gated guest read | Inspect guest path metadata. Requires `confirm: true`. |
 | `proxmox_list_directory` | 2 gated guest read | List one guest directory. Requires `confirm: true`. |
@@ -93,18 +103,34 @@ Tier markers below are authoritative: each tool's gate is enforced in code (`src
 | `proxmox_service_start` | 2 safe-write | Start a systemd service inside a guest. Requires `confirm: true`. |
 | `proxmox_service_stop` | 2 safe-write | Stop a systemd service inside a guest. Requires `confirm: true`. |
 | `proxmox_service_restart` | 2 safe-write | Restart a systemd service inside a guest. Requires `confirm: true`. |
+| `proxmox_update_vm_config` | 2 safe-write | Edit an existing QEMU VM config (cores/memory/net/etc, `PUT .../qemu/{vmid}/config`). Requires `confirm: true`. |
+| `proxmox_update_container_config` | 2 safe-write | Edit an existing LXC config (cores/memory/hostname/etc, `PUT .../lxc/{vmid}/config`). Requires `confirm: true`. |
+| `proxmox_resize_disk` | 2 safe-write | Grow a VM or container disk (`PUT .../{type}/{vmid}/resize`). Grow-only. Requires `confirm: true`. |
+| `proxmox_restore_backup` | 2 safe-write | Restore a vzdump/PBS archive into a VMID. Overwriting an existing VMID escalates to the destructive gate. Requires `confirm: true`. |
+| `proxmox_migrate_resource` | 2 safe-write | Migrate a VM or container to another node (`POST .../migrate`). Requires `confirm: true`. |
+| `proxmox_suspend_resource` | 2 safe-write | Suspend/pause a running guest (QEMU can hibernate to disk). Requires `confirm: true`. |
+| `proxmox_resume_resource` | 2 safe-write | Resume a suspended guest. Requires `confirm: true`. |
+| `proxmox_reset_resource` | 2 safe-write | Hard-reset a QEMU VM (reset button; no graceful shutdown). Requires `confirm: true`. |
+| `proxmox_convert_to_template` | 2 safe-write | Convert a stopped guest into a clone template (one-way). Requires `confirm: true`. |
+| `proxmox_download_url` | 2 safe-write | Download an ISO or container template from a URL onto a storage. Requires `confirm: true`. |
+| `proxmox_cancel_task` | 2 safe-write | Stop a running task by UPID (abort a stuck migration/backup). Requires `confirm: true`. |
+| `proxmox_add_firewall_rule` | 2 safe-write | Add a firewall rule at cluster/node/guest scope. Requires `confirm: true`. |
+| `proxmox_delete_firewall_rule` | 2 safe-write | Delete a firewall rule by position at a scope. Requires `confirm: true`. |
+| `proxmox_set_firewall_enabled` | 2 safe-write | Enable/disable the firewall at a scope. Requires `confirm: true`. |
 | `proxmox_rollback_snapshot` | 3 destructive | Roll back a resource to a named snapshot. |
 | `proxmox_destroy_resource` | 3 destructive | Permanently delete an LXC or VM (`DELETE /nodes/{node}/{type}/{vmid}`). |
 | `proxmox_cleanup_smoke_resources` | 3 destructive | Dry-run or destroy smoke-prefixed LXC/QEMU guests from a smoke pool. |
 | `proxmox_delete_snapshot` | 3 destructive | Delete a named snapshot. |
 | `proxmox_force_stop_resource` | 3 destructive | Non-graceful hard stop of a running container or VM. |
+| `proxmox_delete_volume` | 3 destructive | Permanently delete a storage volume (backup, ISO, template, disk image). |
+| `proxmox_node_power` | 3 destructive | Reboot or shut down an entire node, taking down every guest on it. |
 
-**Reads (20):** open; no flags required.
+**Reads (26):** open; no flags required.
 **Gated guest reads (4):** guest file/path/directory/service inspection tools require `confirm: true` because they expose in-guest state through host-backed SSH.
-**Safe writes (13):** require `confirm: true`. The schema documents the gate on every tool. `WriteGateError` fires before any HTTP call.
-**Destructive (5):** require `confirm: true` + `destructive: true` + env `PROXMOX_ENABLE_DESTRUCTIVE=1`. All three gates must be satisfied; if any one is missing the tool throws `WriteGateError` before resolving the resource.
+**Safe writes (27):** require `confirm: true`. The schema documents the gate on every tool. `WriteGateError` fires before any HTTP call.
+**Destructive (7):** require `confirm: true` + `destructive: true` + env `PROXMOX_ENABLE_DESTRUCTIVE=1`. All three gates must be satisfied; if any one is missing the tool throws `WriteGateError` before resolving the resource.
 
-> Five tools are destructive and can delete or hard-stop guests: `proxmox_destroy_resource`, `proxmox_cleanup_smoke_resources`, `proxmox_rollback_snapshot`, `proxmox_delete_snapshot`, and `proxmox_force_stop_resource`. They are gated behind the `PROXMOX_ENABLE_DESTRUCTIVE=1` process env flag and stay inert until you set it. See [SECURITY.md](SECURITY.md) and the [Safety](#safety) section.
+> Seven tools are destructive and can delete, hard-stop, or power off resources: `proxmox_destroy_resource`, `proxmox_cleanup_smoke_resources`, `proxmox_rollback_snapshot`, `proxmox_delete_snapshot`, `proxmox_force_stop_resource`, `proxmox_delete_volume`, and `proxmox_node_power`. They are gated behind the `PROXMOX_ENABLE_DESTRUCTIVE=1` process env flag and stay inert until you set it. See [SECURITY.md](SECURITY.md) and the [Safety](#safety) section.
 
 ## Quickstart
 
@@ -168,6 +194,7 @@ The `proxmox_exec`, `proxmox_read_file`, and `proxmox_write_file` tools SSH to t
 | `PROXMOX_VM_SSH_USER` | falls through to `PROXMOX_SSH_USER` | Default user for direct VM SSH |
 | `PROXMOX_VM_SSH_KEY` | falls through to `PROXMOX_SSH_KEY` | Default key for direct VM SSH |
 | `PROXMOX_SSH_MAX_OUTPUT_BYTES` | `1048576` | Max stdout bytes and max stderr bytes captured per SSH command |
+| `PROXMOX_EXEC_BACKEND` | `ssh` | QEMU exec backend: `ssh` (direct SSH to the VM) or `guest-agent` (qemu-guest-agent API, no in-guest SSH key needed). LXC always uses `pct exec` over host SSH. |
 
 Per-VM overrides (read at execute time, no MCP restart needed):
 
@@ -176,6 +203,12 @@ Per-VM overrides (read at execute time, no MCP restart needed):
 - `PROXMOX_VM_<vmid>_SSH_KEY` - per-VM key override
 
 For QEMU VMs without a per-VM env override, install `qemu-guest-agent` in the VM and enable it with `qm set <vmid> --agent 1` so the IP can be discovered automatically.
+
+Set `PROXMOX_EXEC_BACKEND=guest-agent` to run QEMU guest commands entirely through the qemu-guest-agent API instead of SSH. This needs no in-guest SSH key and no network path from the MCP host to the VM (traffic goes through the Proxmox API), but the API token needs the `VM.GuestAgent.*` privileges (`Unrestricted` for exec, `FileRead`/`FileWrite` for file ops). LXC guests always use `pct exec` over host SSH regardless of this setting.
+
+### Waiting for long-running tasks
+
+Provisioning and disk operations (`proxmox_create_container`, `proxmox_create_vm`, `proxmox_clone_resource`, `proxmox_run_backup`, `proxmox_restore_backup`, `proxmox_migrate_resource`, `proxmox_resize_disk`, `proxmox_download_url`, `proxmox_destroy_resource`) return a task UPID immediately. Pass `wait: true` (with optional `wait_timeout` seconds, default 120) to block until the task finishes; the result then includes a `task` object with `done`, `exitstatus`, and `ok` (true only for an `OK` exit). Without `wait`, use `proxmox_wait_task` to poll the UPID yourself.
 
 ## CLI
 
@@ -189,6 +222,10 @@ proxmoxctl vms list
 proxmoxctl containers list
 proxmoxctl vm config 100
 proxmoxctl storage list --node pve
+proxmoxctl storage content local --node pve --content backup
+proxmoxctl disks list --node pve        # physical disks + SMART health
+proxmoxctl services list --node pve     # host systemd services
+proxmoxctl firewall rules --scope cluster
 proxmoxctl backups list --vmid 100
 proxmoxctl snapshots list 100
 proxmoxctl audit-permissions
@@ -273,13 +310,13 @@ PROXMOX_TLS_INSECURE = "false"
 
 This MCP uses a three-tier write-gating model. The tier is enforced in code, not just documented.
 
-- **Tier 1 (reads):** open. No confirm flag needed. Status, listings, config inspection, QEMU smoke-source validation, permission audit, usage, recent tasks, backup inventory, template inventory, storage inventory, snapshot inventory, guest network lookup, task wait, next-VMID lookup, task status/log, and pool resource audit live here.
-- **Tier 2 (gated guest reads + safe writes):** require an explicit `confirm: true` arg. Guest file/path/directory/service inspection, start, stop, reboot, snapshot create, run backup, create container, create VM, clone, in-container `exec`, in-container `write_file`, and guest service start/stop/restart live here. A tool call without the confirm flag throws `WriteGateError` before any HTTP traffic.
-- **Tier 3 (destructive):** require `confirm: true` + `destructive: true` + the env flag `PROXMOX_ENABLE_DESTRUCTIVE=1` on the MCP process. Permanent resource deletion, smoke pool cleanup, snapshot rollback/deletion, and non-graceful force-stop live here.
+- **Tier 1 (reads):** open. No confirm flag needed. Status, listings, config inspection, QEMU smoke-source validation, permission audit, usage, recent tasks, backup inventory, template inventory, storage inventory, snapshot inventory, guest network lookup, task wait, next-VMID lookup, task status/log, pool resource audit, storage content listing, node service/disk/update inventory, and firewall rule/option inspection live here.
+- **Tier 2 (gated guest reads + safe writes):** require an explicit `confirm: true` arg. Guest file/path/directory/service inspection, start, stop, reboot, snapshot create, run backup, create container, create VM, clone, VM/container config edit, disk resize, backup restore (to a new VMID), node migration, suspend/resume/reset, convert-to-template, ISO/template download, task cancel, firewall rule add/delete and enable-toggle, in-container `exec`, in-container `write_file`, and guest service start/stop/restart live here. A tool call without the confirm flag throws `WriteGateError` before any HTTP traffic. Restoring a backup *over an existing VMID* escalates to the Tier-3 gate because it wipes the target's disks.
+- **Tier 3 (destructive):** require `confirm: true` + `destructive: true` + the env flag `PROXMOX_ENABLE_DESTRUCTIVE=1` on the MCP process. Permanent resource deletion, smoke pool cleanup, snapshot rollback/deletion, non-graceful force-stop, storage-volume deletion, and node reboot/shutdown live here.
 
 ### Destructive operations env gate
 
-Tier 3 destructive tools (`proxmox_destroy_resource`, `proxmox_cleanup_smoke_resources`, `proxmox_rollback_snapshot`, `proxmox_delete_snapshot`, `proxmox_force_stop_resource`) require an additional safety gate beyond the per-tool `confirm: true` + `destructive: true` args: the env var `PROXMOX_ENABLE_DESTRUCTIVE=1` must be set on the MCP process. Without it, the tools throw `WriteGateError` before any HTTP call is made. `proxmox_cleanup_smoke_resources` defaults to `dry_run: true`, which previews targets without the destructive env gate.
+Tier 3 destructive tools (`proxmox_destroy_resource`, `proxmox_cleanup_smoke_resources`, `proxmox_rollback_snapshot`, `proxmox_delete_snapshot`, `proxmox_force_stop_resource`, `proxmox_delete_volume`, `proxmox_node_power`) require an additional safety gate beyond the per-tool `confirm: true` + `destructive: true` args: the env var `PROXMOX_ENABLE_DESTRUCTIVE=1` must be set on the MCP process. Without it, the tools throw `WriteGateError` before any HTTP call is made. `proxmox_cleanup_smoke_resources` defaults to `dry_run: true`, which previews targets without the destructive env gate.
 
 This is intentional: destructive ops are rare. The env flag is a coarse "I am actively doing smoke-test cycles" toggle. Leave it unset day to day; flip it only when actively destroying resources is part of the workflow.
 

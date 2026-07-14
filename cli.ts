@@ -55,9 +55,24 @@ const COMMANDS: Record<string, CommandSpec> = {
   "recent-tasks": { create: proxmoxTools.createProxmoxRecentTasksTool, build: (_p, f) => strip({ limit: flagInt(f, "limit"), vmid: flagInt(f, "vmid") }) },
   "next-vmid": { create: proxmoxTools.createProxmoxNextVmidTool, build: () => ({}) },
   "guest-network": { create: proxmoxTools.createProxmoxGuestNetworkTool, build: (p) => ({ vmid: reqInt(p[0], "vmid") }) },
+  "storage content": {
+    create: proxmoxTools.createProxmoxListStorageContentTool,
+    build: (p, f) => strip({ node: reqFlagStr(f, "node"), storage: reqStr(p[0], "storage"), content: flagStr(f, "content"), vmid: flagInt(f, "vmid") }),
+  },
+  "disks list": { create: proxmoxTools.createProxmoxListDisksTool, build: (_p, f) => ({ node: reqFlagStr(f, "node") }) },
+  "services list": { create: proxmoxTools.createProxmoxListNodeServicesTool, build: (_p, f) => ({ node: reqFlagStr(f, "node") }) },
+  "updates list": { create: proxmoxTools.createProxmoxListUpdatesTool, build: (_p, f) => ({ node: reqFlagStr(f, "node") }) },
+  "firewall rules": {
+    create: proxmoxTools.createProxmoxListFirewallRulesTool,
+    build: (_p, f) => strip({ scope: reqFlagStr(f, "scope"), node: flagStr(f, "node"), vmid: flagInt(f, "vmid") }),
+  },
+  "firewall options": {
+    create: proxmoxTools.createProxmoxGetFirewallOptionsTool,
+    build: (_p, f) => strip({ scope: reqFlagStr(f, "scope"), node: flagStr(f, "node"), vmid: flagInt(f, "vmid") }),
+  },
 };
 
-const TWO_WORD = new Set(["vms", "containers", "vm", "container", "resource", "storage", "backups", "snapshots", "templates", "task"]);
+const TWO_WORD = new Set(["vms", "containers", "vm", "container", "resource", "storage", "backups", "snapshots", "templates", "task", "disks", "services", "updates", "firewall"]);
 
 export const HELP = `proxmoxctl - read-only Proxmox VE control CLI (alias: proxops; shares the proxmox-mcp core)
 
@@ -79,6 +94,12 @@ Inventory:
   pool-resources [<pool>]      Members of a resource pool
   next-vmid                    Next free VMID
   guest-network <vmid>         LXC network interfaces
+  storage content <storage>    Volumes on a storage --node <node> [--content backup|iso|vztmpl|images] [--vmid <id>]
+  disks list                   Physical disks + SMART health --node <node>
+  services list                Host systemd services --node <node>
+  updates list                 Pending APT updates --node <node> (needs a Sys.Modify token)
+  firewall rules               Firewall rules --scope cluster|node|guest [--node <node>] [--vmid <id>]
+  firewall options             Firewall options --scope cluster|node|guest [--node <node>] [--vmid <id>]
 
 Audit / tasks:
   audit-permissions            Token privilege audit on common paths [--pool <pool>]
@@ -115,6 +136,12 @@ function reqStr(v: string | undefined, name: string): string {
 function flagStr(flags: Flags, name: string): string | undefined {
   const v = flags[name];
   return typeof v === "string" ? v : undefined;
+}
+
+function reqFlagStr(flags: Flags, name: string): string {
+  const v = flagStr(flags, name);
+  if (v === undefined) throw new UsageError(`--${name} is required`);
+  return v;
 }
 
 function flagInt(flags: Flags, name: string): number | undefined {

@@ -2,6 +2,7 @@ import { Type } from "@sinclair/typebox";
 import type { ClientFactory } from "./_util.ts";
 import { jsonToolResult, resolveResource, validateToolArgs } from "./_util.ts";
 import { assertDestructive, assertEnvFlag } from "../gates.ts";
+import { taskWaitFields, resolveTaskWait, type TaskWaitArgs } from "./task-wait.ts";
 
 const Schema = Type.Object(
   {
@@ -22,6 +23,7 @@ const Schema = Type.Object(
     destructive: Type.Boolean({
       description: "Must be true. Tier-3 destructive gate.",
     }),
+    ...taskWaitFields,
   },
   { additionalProperties: false },
 );
@@ -44,7 +46,7 @@ export function createProxmoxDestroyResourceTool(getClient: ClientFactory) {
         force?: boolean;
         confirm: boolean;
         destructive: boolean;
-      }>(Schema, raw, NAME);
+      } & TaskWaitArgs>(Schema, raw, NAME);
       const purge = args.purge !== false;
       const force = args.force === true;
       const client = getClient();
@@ -62,7 +64,8 @@ export function createProxmoxDestroyResourceTool(getClient: ClientFactory) {
         ? `/nodes/${node}/${type}/${args.vmid}?${qs}`
         : `/nodes/${node}/${type}/${args.vmid}`;
       const upid = await client.delete<string>(path);
-      return jsonToolResult({ vmid: args.vmid, node, type, upid });
+      const task = await resolveTaskWait(client, upid, args);
+      return jsonToolResult({ vmid: args.vmid, node, type, upid, ...(task ? { task } : {}) });
     },
   };
 }

@@ -47,6 +47,25 @@ describe("parseArgs", () => {
     expect(() => parseArgs(["vm", "config", "abc"])).toThrow(UsageError);
     expect(() => parseArgs(["task", "log"])).toThrow(UsageError);
   });
+
+  it("routes the new read commands", () => {
+    expect(parseArgs(["disks", "list", "--node", "pve"])).toMatchObject({ command: "disks list", toolArgs: { node: "pve" } });
+    expect(parseArgs(["services", "list", "--node", "pve"])).toMatchObject({ command: "services list", toolArgs: { node: "pve" } });
+    expect(parseArgs(["updates", "list", "--node", "pve"])).toMatchObject({ command: "updates list", toolArgs: { node: "pve" } });
+    expect(parseArgs(["storage", "content", "local", "--node", "pve", "--content", "backup"])).toMatchObject({
+      command: "storage content", toolArgs: { node: "pve", storage: "local", content: "backup" },
+    });
+    expect(parseArgs(["firewall", "rules", "--scope", "cluster"])).toMatchObject({ command: "firewall rules", toolArgs: { scope: "cluster" } });
+    expect(parseArgs(["firewall", "options", "--scope", "guest", "--vmid", "100"])).toMatchObject({
+      command: "firewall options", toolArgs: { scope: "guest", vmid: 100 },
+    });
+  });
+
+  it("requires --node / --scope / positional storage on the new commands", () => {
+    expect(() => parseArgs(["disks", "list"])).toThrow(UsageError);
+    expect(() => parseArgs(["firewall", "rules"])).toThrow(UsageError);
+    expect(() => parseArgs(["storage", "content", "--node", "pve"])).toThrow(UsageError);
+  });
 });
 
 const NODES_ONLINE = async (path: string) => {
