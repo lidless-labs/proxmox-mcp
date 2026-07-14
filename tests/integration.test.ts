@@ -14,7 +14,7 @@ const NOOP_SSH: SshExecutor = {
 const VM_DEFAULTS = { vmUser: "root", vmKeyPath: "/k" };
 
 describe("integration", () => {
-  it("all 82 tools register with unique names", () => {
+  it("all 96 tools register with unique names", () => {
     const dummy = () =>
       new ProxmoxClient({ url: "http://x", tokenId: "u@pam!t", tokenSecret: "s", tlsInsecure: false });
     const ssh = () => NOOP_SSH;
@@ -101,10 +101,24 @@ describe("integration", () => {
       toolFactories.createProxmoxCreatePoolTool(dummy),
       toolFactories.createProxmoxUpdatePoolTool(dummy),
       toolFactories.createProxmoxDeletePoolTool(dummy),
+      toolFactories.createProxmoxClusterStatusTool(dummy),
+      toolFactories.createProxmoxHaStatusTool(dummy),
+      toolFactories.createProxmoxListHaResourcesTool(dummy),
+      toolFactories.createProxmoxListHaRulesTool(dummy),
+      toolFactories.createProxmoxListReplicationTool(dummy),
+      toolFactories.createProxmoxListSdnZonesTool(dummy),
+      toolFactories.createProxmoxListSdnVnetsTool(dummy),
+      toolFactories.createProxmoxListMetricServersTool(dummy),
+      toolFactories.createProxmoxGetClusterOptionsTool(dummy),
+      toolFactories.createProxmoxClusterLogTool(dummy),
+      toolFactories.createProxmoxAddHaResourceTool(dummy),
+      toolFactories.createProxmoxDeleteHaResourceTool(dummy),
+      toolFactories.createProxmoxCreateReplicationTool(dummy),
+      toolFactories.createProxmoxDeleteReplicationTool(dummy),
     ];
-    expect(created).toHaveLength(82);
+    expect(created).toHaveLength(96);
     const names = created.map((t) => t.name);
-    expect(new Set(names).size).toBe(82);
+    expect(new Set(names).size).toBe(96);
     for (const n of names) expect(n).toMatch(/^proxmox_/);
   });
 

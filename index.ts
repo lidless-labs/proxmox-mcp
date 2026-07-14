@@ -89,6 +89,16 @@ export default definePluginEntry({
     register(tools.createProxmoxListAclTool(getClient));
     register(tools.createProxmoxListPoolsTool(getClient));
     register(tools.createProxmoxListTokensTool(getClient));
+    register(tools.createProxmoxClusterStatusTool(getClient));
+    register(tools.createProxmoxHaStatusTool(getClient));
+    register(tools.createProxmoxListHaResourcesTool(getClient));
+    register(tools.createProxmoxListHaRulesTool(getClient));
+    register(tools.createProxmoxListReplicationTool(getClient));
+    register(tools.createProxmoxListSdnZonesTool(getClient));
+    register(tools.createProxmoxListSdnVnetsTool(getClient));
+    register(tools.createProxmoxListMetricServersTool(getClient));
+    register(tools.createProxmoxGetClusterOptionsTool(getClient));
+    register(tools.createProxmoxClusterLogTool(getClient));
     // Safe writes
     register(tools.createProxmoxStartResourceTool(getClient));
     register(tools.createProxmoxStopResourceTool(getClient));
@@ -117,6 +127,10 @@ export default definePluginEntry({
     register(tools.createProxmoxCreatePoolTool(getClient));
     register(tools.createProxmoxUpdatePoolTool(getClient));
     register(tools.createProxmoxDeletePoolTool(getClient));
+    register(tools.createProxmoxAddHaResourceTool(getClient));
+    register(tools.createProxmoxDeleteHaResourceTool(getClient));
+    register(tools.createProxmoxCreateReplicationTool(getClient));
+    register(tools.createProxmoxDeleteReplicationTool(getClient));
     register(tools.createProxmoxDownloadUrlTool(getClient));
     register(tools.createProxmoxCancelTaskTool(getClient));
     register(tools.createProxmoxAddFirewallRuleTool(getClient));

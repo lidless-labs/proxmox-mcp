@@ -114,11 +114,25 @@ const tools = [
   toolFactories.createProxmoxCreatePoolTool(getClient),
   toolFactories.createProxmoxUpdatePoolTool(getClient),
   toolFactories.createProxmoxDeletePoolTool(getClient),
+  toolFactories.createProxmoxClusterStatusTool(getClient),
+  toolFactories.createProxmoxHaStatusTool(getClient),
+  toolFactories.createProxmoxListHaResourcesTool(getClient),
+  toolFactories.createProxmoxListHaRulesTool(getClient),
+  toolFactories.createProxmoxListReplicationTool(getClient),
+  toolFactories.createProxmoxListSdnZonesTool(getClient),
+  toolFactories.createProxmoxListSdnVnetsTool(getClient),
+  toolFactories.createProxmoxListMetricServersTool(getClient),
+  toolFactories.createProxmoxGetClusterOptionsTool(getClient),
+  toolFactories.createProxmoxClusterLogTool(getClient),
+  toolFactories.createProxmoxAddHaResourceTool(getClient),
+  toolFactories.createProxmoxDeleteHaResourceTool(getClient),
+  toolFactories.createProxmoxCreateReplicationTool(getClient),
+  toolFactories.createProxmoxDeleteReplicationTool(getClient),
 ];
 
 const toolMap = new Map(tools.map((t) => [t.name, t]));
 
-const server = new Server({ name: "proxmox-mcp", version: "0.10.0" }, { capabilities: { tools: {} } });
+const server = new Server({ name: "proxmox-mcp", version: "0.11.0" }, { capabilities: { tools: {} } });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.parameters })),
