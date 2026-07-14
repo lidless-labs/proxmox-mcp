@@ -14,7 +14,7 @@ const NOOP_SSH: SshExecutor = {
 const VM_DEFAULTS = { vmUser: "root", vmKeyPath: "/k" };
 
 describe("integration", () => {
-  it("all 42 tools register with unique names", () => {
+  it("all 64 tools register with unique names", () => {
     const dummy = () =>
       new ProxmoxClient({ url: "http://x", tokenId: "u@pam!t", tokenSecret: "s", tlsInsecure: false });
     const ssh = () => NOOP_SSH;
@@ -61,10 +61,32 @@ describe("integration", () => {
       toolFactories.createProxmoxServiceStartTool(dummy, ssh, VM_DEFAULTS),
       toolFactories.createProxmoxServiceStopTool(dummy, ssh, VM_DEFAULTS),
       toolFactories.createProxmoxServiceRestartTool(dummy, ssh, VM_DEFAULTS),
+      toolFactories.createProxmoxUpdateVmConfigTool(dummy),
+      toolFactories.createProxmoxUpdateContainerConfigTool(dummy),
+      toolFactories.createProxmoxResizeDiskTool(dummy),
+      toolFactories.createProxmoxRestoreBackupTool(dummy),
+      toolFactories.createProxmoxMigrateResourceTool(dummy),
+      toolFactories.createProxmoxSuspendResourceTool(dummy),
+      toolFactories.createProxmoxResumeResourceTool(dummy),
+      toolFactories.createProxmoxResetResourceTool(dummy),
+      toolFactories.createProxmoxConvertToTemplateTool(dummy),
+      toolFactories.createProxmoxListStorageContentTool(dummy),
+      toolFactories.createProxmoxDownloadUrlTool(dummy),
+      toolFactories.createProxmoxDeleteVolumeTool(dummy),
+      toolFactories.createProxmoxListNodeServicesTool(dummy),
+      toolFactories.createProxmoxListUpdatesTool(dummy),
+      toolFactories.createProxmoxListDisksTool(dummy),
+      toolFactories.createProxmoxCancelTaskTool(dummy),
+      toolFactories.createProxmoxNodePowerTool(dummy),
+      toolFactories.createProxmoxListFirewallRulesTool(dummy),
+      toolFactories.createProxmoxGetFirewallOptionsTool(dummy),
+      toolFactories.createProxmoxAddFirewallRuleTool(dummy),
+      toolFactories.createProxmoxDeleteFirewallRuleTool(dummy),
+      toolFactories.createProxmoxSetFirewallEnabledTool(dummy),
     ];
-    expect(created).toHaveLength(42);
+    expect(created).toHaveLength(64);
     const names = created.map((t) => t.name);
-    expect(new Set(names).size).toBe(42);
+    expect(new Set(names).size).toBe(64);
     for (const n of names) expect(n).toMatch(/^proxmox_/);
   });
 

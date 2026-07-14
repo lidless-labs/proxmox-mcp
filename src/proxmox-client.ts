@@ -44,6 +44,10 @@ export class ProxmoxClient {
     return this.request<T>("POST", path, body);
   }
 
+  async put<T = unknown>(path: string, body: unknown): Promise<T> {
+    return this.request<T>("PUT", path, body);
+  }
+
   async delete<T = unknown>(path: string): Promise<T> {
     return this.request<T>("DELETE", path);
   }
@@ -58,6 +62,15 @@ export class ProxmoxClient {
         const form = new URLSearchParams();
         for (const [k, v] of Object.entries(body as Record<string, unknown>)) {
           if (v === undefined || v === null) continue;
+          // PVE encodes array params as repeated keys (e.g. guest-agent exec
+          // `command`), not a single JSON blob.
+          if (Array.isArray(v)) {
+            for (const item of v) {
+              if (item === undefined || item === null) continue;
+              form.append(k, typeof item === "object" ? JSON.stringify(item) : String(item));
+            }
+            continue;
+          }
           form.append(k, typeof v === "object" ? JSON.stringify(v) : String(v));
         }
         headers["content-type"] = "application/x-www-form-urlencoded";

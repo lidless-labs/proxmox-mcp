@@ -3,6 +3,7 @@ import type { ClientFactory } from "./_util.ts";
 import { jsonToolResult, validateToolArgs } from "./_util.ts";
 import { assertConfirmedWrite } from "../gates.ts";
 import { registerSecret } from "../security.ts";
+import { taskWaitFields, resolveTaskWait, type TaskWaitArgs } from "./task-wait.ts";
 
 const Schema = Type.Object(
   {
@@ -95,6 +96,7 @@ const Schema = Type.Object(
     confirm: Type.Boolean({
       description: "Must be true to write. Tier-2 safe-write gate.",
     }),
+    ...taskWaitFields,
   },
   { additionalProperties: false },
 );
@@ -145,7 +147,7 @@ export function createProxmoxCreateVmTool(getClient: ClientFactory) {
         nameserver?: string;
         searchdomain?: string;
         confirm: boolean;
-      }>(Schema, raw, NAME);
+      } & TaskWaitArgs>(Schema, raw, NAME);
       if (typeof args.cipassword === "string" && args.cipassword.length > 0) {
         registerSecret(args.cipassword);
       }
@@ -179,11 +181,13 @@ export function createProxmoxCreateVmTool(getClient: ClientFactory) {
       }
       if (typeof args.sockets === "number") body.sockets = args.sockets;
       const upid = await client.post<string>(`/nodes/${node}/qemu`, body);
+      const task = await resolveTaskWait(client, upid, args);
       return jsonToolResult({
         vmid: args.vmid,
         node,
         name: args.name,
         upid,
+        ...(task ? { task } : {}),
       });
     },
   };

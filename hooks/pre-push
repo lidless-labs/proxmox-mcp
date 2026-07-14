@@ -1,39 +1,78 @@
 #!/usr/bin/env bash
-# pre-push: block push if content-guard finds blocking violations.
-# Scans tracked files in the repo against policies/public-repo.json.
-# (Tracked-only scan — untracked working-tree files are out of scope.)
-# Bypass only if you know what you're doing: git push --no-verify
+# pre-push: block push if brigade guard finds blocking violations.
+#
+# Two scans run:
+#   1. tracked tip   - all tracked files in the current working tree
+#   2. push history  - content INTRODUCED by the commits being pushed
+#                      (closes the forward-scrub gap: a clean tip can still
+#                      sit on top of commits that leak in their diffs)
+#
+# Requires brigade-cli (the guard is embedded): pipx install brigade-cli
+#
+# Optional: set CONTENT_GUARD_EXTRA_POLICY (or drop a file at
+# ~/.config/content-guard/internal.json) with a private identifier denylist
+# (hostnames, usernames, internal subnets). That file is NEVER committed to a
+# public repo - it stays local so the denylist itself does not leak.
+#
+# Bypass only if you know what you are doing: git push --no-verify
 set -euo pipefail
 
-CONTENT_GUARD_DIR="${CONTENT_GUARD_DIR:-$HOME/repos/content-guard}"
-POLICY="${CONTENT_GUARD_POLICY:-$CONTENT_GUARD_DIR/policies/public-repo.json}"
-
-if [[ ! -d "$CONTENT_GUARD_DIR/src/content_guard" ]]; then
-  echo "pre-push: content-guard not found at $CONTENT_GUARD_DIR" >&2
-  echo "pre-push: clone https://github.com/solomonneas/content-guard or set CONTENT_GUARD_DIR" >&2
+if ! command -v brigade >/dev/null 2>&1; then
+  echo "pre-push: brigade not found on PATH" >&2
+  echo "pre-push: install with: pipx install brigade-cli" >&2
   exit 1
 fi
 
-if [[ ! -f "$POLICY" ]]; then
-  echo "pre-push: policy file not found: $POLICY" >&2
-  exit 1
-fi
+EXTRA_POLICY="${CONTENT_GUARD_EXTRA_POLICY:-$HOME/.config/content-guard/internal.json}"
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
-echo "pre-push: scanning tracked files against $(basename "$POLICY")"
+RUN() { brigade guard git "$@"; }
+ZERO="0000000000000000000000000000000000000000"
+FAIL=0
+STDIN_REFS="$(cat)"
 
-if ! PYTHONPATH="$CONTENT_GUARD_DIR/src" python3 -m content_guard.git_scan --all-tracked --policy "$POLICY"; then
-  echo >&2
-  echo "pre-push: BLOCKED. content-guard found violations in tracked files." >&2
-  echo "pre-push:" >&2
-  echo "pre-push: To resolve:" >&2
-  echo "pre-push:   1. Fix the leak in the offending file, OR" >&2
-  echo "pre-push:   2. Add an inline allow tag on the offending line:" >&2
-  echo "pre-push:        <!-- content-guard: allow <rule-id> -->" >&2
-  echo "pre-push:      or for the whole file (add near the top):" >&2
-  echo "pre-push:        <!-- content-guard: allow <rule-id> file -->" >&2
-  echo "pre-push:" >&2
-  echo "pre-push: Bypass only if you know what you are doing: git push --no-verify" >&2
+# Apply the private policy's allow_values (known-public literals such as a
+# public author email or an example port) to EVERY scan, including the public
+# one. This is how a history scan of an old commit clears those literals: no
+# inline `content-guard: allow` marker can exist in a past diff, and the values
+# stay in the private file rather than a shipped public policy.
+ALLOW_FROM=()
+[[ -f "$EXTRA_POLICY" ]] && ALLOW_FROM=(--allow-values-from "$EXTRA_POLICY")
+
+scan_with() {
+  # No args = the embedded public-repo policy. Otherwise: --policy <path>.
+  local -a pol=("$@")
+  echo "pre-push: [tip] scanning tracked files (${pol[1]:-embedded public-repo})"
+  RUN --all-tracked "${pol[@]+"${pol[@]}"}" "${ALLOW_FROM[@]+"${ALLOW_FROM[@]}"}" || FAIL=1
+  while read -r _lref lsha _rref rsha; do
+    [[ -z "${lsha:-}" || "$lsha" == "$ZERO" ]] && continue   # branch deletion
+    if [[ "$rsha" == "$ZERO" ]]; then range="$lsha"; else range="$rsha..$lsha"; fi
+    echo "pre-push: [history] scanning introduced content in $range"
+    RUN --history --range "$range" "${pol[@]+"${pol[@]}"}" "${ALLOW_FROM[@]+"${ALLOW_FROM[@]}"}" || FAIL=1
+  done < <(printf '%s\n' "$STDIN_REFS")
+}
+
+if [[ -n "${CONTENT_GUARD_POLICY:-}" ]]; then
+  scan_with --policy "$CONTENT_GUARD_POLICY"
+else
+  scan_with
+fi
+[[ -f "$EXTRA_POLICY" ]] && scan_with --policy "$EXTRA_POLICY"
+
+if [[ "$FAIL" -ne 0 ]]; then
+  {
+    echo
+    echo "pre-push: BLOCKED. brigade guard found violations."
+    echo "pre-push: A [history] hit means a leak lives in a commit diff even if the tip is clean."
+    echo "pre-push: Forward-scrub commits do NOT fix history - rewrite it (git filter-repo) and"
+    echo "pre-push: re-verify with: brigade guard git --history --all"
+    echo "pre-push: Inline allow on the tip (only for genuinely public example data, never real infra):"
+    echo "pre-push:   <!-- content-guard: allow <rule-id> -->"
+    echo "pre-push: For a known-public literal that trips a [history] hit (no inline marker can"
+    echo "pre-push: reach an old diff), add the exact string to allow_values in your private policy"
+    echo "pre-push:   ${EXTRA_POLICY}"
+    echo "pre-push: Bypass only if you know what you are doing: git push --no-verify"
+  } >&2
   exit 1
 fi

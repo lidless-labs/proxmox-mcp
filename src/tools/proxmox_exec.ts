@@ -1,7 +1,8 @@
 import { Type } from "@sinclair/typebox";
 import type { ClientFactory, SshExecutorFactory } from "./_util.ts";
 import { jsonToolResult, resolveResource, validateToolArgs } from "./_util.ts";
-import { missingQemuSshHostMessage, qemuSshTarget, resolveQemuSshHost, type VmSshDefaults } from "./ssh-target.ts";
+import { type VmSshDefaults } from "./ssh-target.ts";
+import { execInQemuGuest } from "./guest-command.ts";
 import { assertConfirmedWrite } from "../gates.ts";
 
 const Schema = Type.Object(
@@ -27,7 +28,7 @@ export function createProxmoxExecTool(
     name: NAME,
     label: "proxmox: exec in container or VM",
     description:
-      "Run a shell command inside an LXC container (via SSH+pct exec) or QEMU VM (via direct SSH, IP from guest agent or env override). Returns stdout/stderr/exit_code. Tier-2 write; requires confirm:true.",
+      "Run a shell command inside an LXC container (via SSH+pct exec) or QEMU VM (via direct SSH by default, or the qemu-guest-agent API when PROXMOX_EXEC_BACKEND=guest-agent - no in-guest SSH key needed). Returns stdout/stderr/exit_code. Tier-2 write; requires confirm:true.",
     parameters: Schema,
     execute: async (_id: string, raw: Record<string, unknown>) => {
       assertConfirmedWrite(raw, NAME);
@@ -46,12 +47,7 @@ export function createProxmoxExecTool(
           exit_code: result.exitCode,
         });
       }
-      const host = await resolveQemuSshHost(client, node, args.vmid);
-      if (!host) {
-        throw new Error(missingQemuSshHostMessage(args.vmid));
-      }
-      const target = qemuSshTarget(args.vmid, host, vmDefaults);
-      const result = await ssh.execViaDirectSsh(target, args.command, timeoutMs);
+      const result = await execInQemuGuest(client, ssh, node, args.vmid, args.command, timeoutMs, vmDefaults);
       return jsonToolResult({
         vmid: args.vmid,
         type,

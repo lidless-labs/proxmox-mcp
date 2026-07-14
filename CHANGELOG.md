@@ -8,11 +8,30 @@ All notable changes to proxmox-mcp are documented here. The format is based on [
 
 ### Added
 
+- **Task-await**: `wait: true` (+ optional `wait_timeout`, default 120s) on the nine long-running tools (create container/VM, clone, backup, restore, migrate, resize, download-url, destroy). The result then carries a `task` object with `done`/`exitstatus`/`ok`, so an agent can act on the outcome without a separate poll. Verified live (a WARNINGS exit correctly reports `ok:false`).
+- **Guest-agent exec backend**: set `PROXMOX_EXEC_BACKEND=guest-agent` to run QEMU `exec`/`read_file`/`write_file`/`stat`/`list`/`service` tools through the qemu-guest-agent API instead of SSH - no in-guest SSH key or host-to-VM network path required (needs the token's `VM.GuestAgent.*` privileges). LXC still uses `pct exec` over host SSH. QEMU exec is centralized in one place so the backend choice is a single toggle. Verified live against a running VM (exec, file read, and file write round-trip).
+- **CLI reads**: `proxmoxctl` gains `storage content`, `disks list`, `services list`, `updates list`, `firewall rules`, and `firewall options`. Still read-only.
+- `ProxmoxClient` now encodes array body params as repeated keys (PVE's convention, e.g. the guest-agent `command` array).
+
+### Added (control tools)
+
+- **Lifecycle tools** (Tier-2): `proxmox_suspend_resource`, `proxmox_resume_resource`, `proxmox_reset_resource` (QEMU hard reset), and `proxmox_convert_to_template` (one-way).
+- **Storage-plane tools**: `proxmox_list_storage_content` (Tier-1: browse ISOs/templates/images/backups), `proxmox_download_url` (Tier-2: fetch an ISO/template from a URL), and `proxmox_delete_volume` (Tier-3 destructive: prune a backup/ISO/image/disk).
+- **Node-ops tools**: `proxmox_list_node_services`, `proxmox_list_disks` (SMART health), `proxmox_list_updates` (Tier-1 reads; `list_updates` needs a Sys.Modify token per Proxmox), `proxmox_cancel_task` (Tier-2: abort a running task), and `proxmox_node_power` (Tier-3 destructive: reboot/shutdown a whole node).
+- **Firewall tools** across cluster/node/guest scope: `proxmox_list_firewall_rules`, `proxmox_get_firewall_options` (Tier-1 reads), and `proxmox_add_firewall_rule`, `proxmox_delete_firewall_rule`, `proxmox_set_firewall_enabled` (Tier-2 writes).
+- **Config-mutation tools** (Tier-2 safe writes), closing the gap where the server could create and destroy guests but not modify existing ones:
+  - `proxmox_update_vm_config` / `proxmox_update_container_config`: edit an existing guest's config (cores, memory, network, description, tags, etc.) via `PUT .../config`, with typed common fields plus a generic `set`/`unset` escape hatch for arbitrary keys.
+  - `proxmox_resize_disk`: grow a VM or container disk (`PUT .../resize`, grow-only per Proxmox).
+  - `proxmox_restore_backup`: restore a vzdump/PBS archive into a VMID. Restoring to a new VMID is Tier-2; overwriting an existing VMID escalates to the full destructive gate. (LXC restores correctly use the `ostemplate` field the PVE API expects.)
+  - `proxmox_migrate_resource`: migrate a VM (online/live) or container (restart mode) to another node.
+- `ProxmoxClient.put()` for PVE's config-mutation endpoints.
 - Maintainer-health docs: `SECURITY.md` (destructive-op safety model and token-scope guidance), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and GitHub issue/PR templates.
 
 ### Changed
 
-- README rewritten to the fleet adoption standard: differentiator-first opening, centered title and badges, prominent website link, a copyable MCP client config and the full verified 42-tool list with explicit safety tiers, "Why not the alternatives?" and "What proxmox-mcp is not" sections. Real hosts and IPs in examples replaced with documentation-range placeholders (`192.0.2.x`).
+- Tool surface grows from 42 to 64 (reads 20->26, safe-writes 13->27, destructive 5->7). New writes verified end-to-end against a live Proxmox VE 9.2 cluster (config edit, resize, backup/restore round-trip, suspend/resume, convert-to-template, and the full firewall rule lifecycle at guest scope).
+- OpenClaw plugin entry (`index.ts`) now registers the full tool set and wires guest SSH, matching the MCP stdio surface. It previously exposed only a stale 21-tool subset.
+- README rewritten to the fleet adoption standard: differentiator-first opening, centered title and badges, prominent website link, a copyable MCP client config and the full verified tool list with explicit safety tiers, "Why not the alternatives?" and "What proxmox-mcp is not" sections. Real hosts and IPs in examples replaced with documentation-range placeholders (`192.0.2.x`).
 
 ## [0.5.0]
 

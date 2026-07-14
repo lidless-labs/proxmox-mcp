@@ -2,7 +2,8 @@ import { Type } from "@sinclair/typebox";
 import path from "node:path";
 import type { ClientFactory, SshExecutor, SshExecutorFactory } from "./_util.ts";
 import { jsonToolResult, resolveResource, validateToolArgs } from "./_util.ts";
-import { missingQemuSshHostMessage, qemuSshTarget, resolveQemuSshHost, type VmSshDefaults } from "./ssh-target.ts";
+import { type VmSshDefaults } from "./ssh-target.ts";
+import { execInQemuGuest } from "./guest-command.ts";
 import { assertConfirmedWrite } from "../gates.ts";
 import type { ExecResult } from "../ssh-executor.ts";
 
@@ -55,11 +56,7 @@ export function createProxmoxWriteFileTool(
         if (type === "lxc") {
           return ssh.execInLxc(args.vmid, command, timeoutMs, stdin);
         }
-        const host = await resolveQemuSshHost(client, node, args.vmid);
-        if (!host) {
-          throw new Error(missingQemuSshHostMessage(args.vmid));
-        }
-        return ssh.execViaDirectSsh(qemuSshTarget(args.vmid, host, vmDefaults), command, timeoutMs, stdin);
+        return execInQemuGuest(client, ssh, node, args.vmid, command, timeoutMs, vmDefaults, stdin);
       };
 
       const mkdirResult = await runOne(mkdirCmd);

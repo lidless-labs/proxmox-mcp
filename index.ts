@@ -7,6 +7,8 @@
 import { definePluginEntry, type AnyAgentTool } from "openclaw/plugin-sdk/plugin-entry";
 import { resolveConfig, type ProxmoxConfig } from "./src/config.ts";
 import { ProxmoxClient } from "./src/proxmox-client.ts";
+import { execInLxc, execViaDirectSsh } from "./src/ssh-executor.ts";
+import type { SshExecutor } from "./src/tools/_util.ts";
 import { registerSecret, redact } from "./src/security.ts";
 import * as tools from "./src/tools/index.ts";
 
@@ -46,27 +48,80 @@ export default definePluginEntry({
     if (api.registrationMode !== "full") return;
     const cfg = resolveConfig(process.env);
     const getClient = makeFactory(cfg);
+    const hostCfg = { host: cfg.ssh.host, port: cfg.ssh.port, user: cfg.ssh.user, keyPath: cfg.ssh.keyPath };
+    const getSsh = (): SshExecutor => ({
+      execInLxc: (vmid, command, timeoutMs, stdin) => execInLxc(hostCfg, vmid, command, timeoutMs, stdin),
+      execViaDirectSsh: (target, command, timeoutMs, stdin) => execViaDirectSsh(target, command, timeoutMs, stdin),
+    });
+    const vmDefaults = { vmUser: cfg.ssh.vmUser, vmKeyPath: cfg.ssh.vmKeyPath };
     const register = (t: ToolLike) => api.registerTool(withRedactedErrors(t) as unknown as AnyAgentTool);
+    // Reads
     register(tools.createProxmoxStatusTool(getClient));
     register(tools.createProxmoxListContainersTool(getClient));
     register(tools.createProxmoxListVmsTool(getClient));
     register(tools.createProxmoxGetResourceTool(getClient));
+    register(tools.createProxmoxGetVmConfigTool(getClient));
+    register(tools.createProxmoxGetContainerConfigTool(getClient));
+    register(tools.createProxmoxValidateQemuSmokeSourceTool(getClient));
+    register(tools.createProxmoxAuditPermissionsTool(getClient));
     register(tools.createProxmoxRecentTasksTool(getClient));
     register(tools.createProxmoxListBackupsTool(getClient));
     register(tools.createProxmoxResourceUsageTool(getClient));
+    register(tools.createProxmoxListTemplatesTool(getClient));
+    register(tools.createProxmoxListStorageTool(getClient));
+    register(tools.createProxmoxListSnapshotsTool(getClient));
+    register(tools.createProxmoxGuestNetworkTool(getClient));
+    register(tools.createProxmoxWaitTaskTool(getClient));
+    register(tools.createProxmoxNextVmidTool(getClient));
+    register(tools.createProxmoxListPoolResourcesTool(getClient));
+    register(tools.createProxmoxGetTaskStatusTool(getClient));
+    register(tools.createProxmoxGetTaskLogTool(getClient));
+    register(tools.createProxmoxListStorageContentTool(getClient));
+    register(tools.createProxmoxListNodeServicesTool(getClient));
+    register(tools.createProxmoxListUpdatesTool(getClient));
+    register(tools.createProxmoxListDisksTool(getClient));
+    register(tools.createProxmoxListFirewallRulesTool(getClient));
+    register(tools.createProxmoxGetFirewallOptionsTool(getClient));
+    // Safe writes
     register(tools.createProxmoxStartResourceTool(getClient));
     register(tools.createProxmoxStopResourceTool(getClient));
     register(tools.createProxmoxRebootResourceTool(getClient));
+    register(tools.createProxmoxSuspendResourceTool(getClient));
+    register(tools.createProxmoxResumeResourceTool(getClient));
+    register(tools.createProxmoxResetResourceTool(getClient));
     register(tools.createProxmoxSnapshotResourceTool(getClient));
     register(tools.createProxmoxRunBackupTool(getClient));
-    register(tools.createProxmoxGetTaskStatusTool(getClient));
-    register(tools.createProxmoxGetTaskLogTool(getClient));
-    register(tools.createProxmoxListTemplatesTool(getClient));
     register(tools.createProxmoxCreateContainerTool(getClient));
     register(tools.createProxmoxCreateVmTool(getClient));
     register(tools.createProxmoxCloneResourceTool(getClient));
+    register(tools.createProxmoxConvertToTemplateTool(getClient));
+    register(tools.createProxmoxUpdateVmConfigTool(getClient));
+    register(tools.createProxmoxUpdateContainerConfigTool(getClient));
+    register(tools.createProxmoxResizeDiskTool(getClient));
+    register(tools.createProxmoxRestoreBackupTool(getClient));
+    register(tools.createProxmoxMigrateResourceTool(getClient));
+    register(tools.createProxmoxDownloadUrlTool(getClient));
+    register(tools.createProxmoxCancelTaskTool(getClient));
+    register(tools.createProxmoxAddFirewallRuleTool(getClient));
+    register(tools.createProxmoxDeleteFirewallRuleTool(getClient));
+    register(tools.createProxmoxSetFirewallEnabledTool(getClient));
+    // Guest SSH tools
+    register(tools.createProxmoxExecTool(getClient, getSsh, vmDefaults));
+    register(tools.createProxmoxReadFileTool(getClient, getSsh, vmDefaults));
+    register(tools.createProxmoxWriteFileTool(getClient, getSsh, vmDefaults));
+    register(tools.createProxmoxStatPathTool(getClient, getSsh, vmDefaults));
+    register(tools.createProxmoxListDirectoryTool(getClient, getSsh, vmDefaults));
+    register(tools.createProxmoxServiceStatusTool(getClient, getSsh, vmDefaults));
+    register(tools.createProxmoxServiceStartTool(getClient, getSsh, vmDefaults));
+    register(tools.createProxmoxServiceStopTool(getClient, getSsh, vmDefaults));
+    register(tools.createProxmoxServiceRestartTool(getClient, getSsh, vmDefaults));
+    // Destructive
+    register(tools.createProxmoxRollbackSnapshotTool(getClient));
     register(tools.createProxmoxDestroyResourceTool(getClient));
+    register(tools.createProxmoxCleanupSmokeResourcesTool(getClient));
     register(tools.createProxmoxDeleteSnapshotTool(getClient));
     register(tools.createProxmoxForceStopResourceTool(getClient));
+    register(tools.createProxmoxDeleteVolumeTool(getClient));
+    register(tools.createProxmoxNodePowerTool(getClient));
   },
 });

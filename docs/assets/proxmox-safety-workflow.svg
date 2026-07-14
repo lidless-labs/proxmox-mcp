@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1168" height="468" viewBox="0 0 1168 468" role="img" aria-labelledby="title desc">
+  <title id="title">read the cluster first, gate every change</title>
+  <desc id="desc">Inventory and task lookup are open. Guest reads and writes require confirmation, while destructive tools require the full three-part gate.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 8 4.5 L 0 9 z" fill="#38bdf8"/>
+    </marker>
+    <radialGradient id="glow" cx="74%" cy="14%" r="58%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.22"/>
+      <stop offset="70%" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <style>
+    .kicker,.lane,.status,.footer{font-family:"IBM Plex Mono","SFMono-Regular",Consolas,monospace;letter-spacing:.11em}
+    .title{font-family:"Instrument Sans",Inter,system-ui,sans-serif;font-weight:760;font-size:31px;fill:#dbe3ec}
+    .subtitle{font-family:"Instrument Sans",Inter,system-ui,sans-serif;font-size:15px;fill:#aab6c4}
+    .kicker{font-size:12px;font-weight:700;fill:#38bdf8}
+    .lane{font-size:11px;font-weight:700;fill:#7c8894}
+    .node-title{font-family:"IBM Plex Mono","SFMono-Regular",Consolas,monospace;font-size:14px;font-weight:700;fill:#dbe3ec}
+    .node-meta{font-family:"Instrument Sans",Inter,system-ui,sans-serif;font-size:12px;fill:#aab6c4}
+    .status{font-size:9px;font-weight:700;text-transform:uppercase}
+    .edge{fill:none;stroke:#38bdf8;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.86}
+    .footer{font-size:11px;fill:#7c8894}
+  </style>
+  <rect x="0" y="0" width="1168" height="468" rx="0" fill="#0a0e15"/>
+  <rect x="0" y="0" width="1168" height="468" fill="url(#glow)"/>
+  <path d="M 66 98 H 1102" stroke="#1a2230" stroke-width="1"/>
+  <text x="66" y="42" class="kicker">PROXMOX-MCP · SAFETY MODEL</text>
+  <text x="66" y="78" class="title">read the cluster first, gate every change</text>
+  <text x="66" y="114" class="subtitle">
+    <tspan x="66" dy="0">Inventory and task lookup are open. Guest reads and writes require confirmation, while destructive tools require</tspan><tspan x="66" dy="19">the full three-part gate.</tspan>
+  </text>
+  
+      <rect x="52" y="118" width="248" height="320" rx="18" fill="#111824" opacity="0.42" stroke="#1a2230"/>
+      <text x="66" y="178" class="lane">READ</text>
+      <rect x="324" y="118" width="248" height="320" rx="18" fill="#0d1119" opacity="0.42" stroke="#1a2230"/>
+      <text x="338" y="178" class="lane">GUEST</text>
+      <rect x="596" y="118" width="248" height="320" rx="18" fill="#111824" opacity="0.42" stroke="#1a2230"/>
+      <text x="610" y="178" class="lane">WRITE</text>
+      <rect x="868" y="118" width="248" height="320" rx="18" fill="#0d1119" opacity="0.42" stroke="#1a2230"/>
+      <text x="882" y="178" class="lane">DESTRUCTIVE</text>
+  <path class="edge" d="M 176 290 V 438 H 176 V 428" marker-end="url(#arrow)"/>
+<path class="edge" d="M 286 246 C 312 246, 304 246, 330 246" marker-end="url(#arrow)"/>
+<path class="edge" d="M 558 246 C 584 246, 576 246, 602 246" marker-end="url(#arrow)"/>
+<path class="edge" d="M 720 290 V 438 H 720 V 428" marker-end="url(#arrow)"/>
+<path class="edge" d="M 830 246 C 856 246, 848 246, 874 246" marker-end="url(#arrow)"/>
+<path class="edge" d="M 830 376 C 856 376, 848 246, 874 246" marker-end="url(#arrow)"/>
+  
+    <g class="node" data-node="inventory">
+      <rect x="66" y="202" width="220" height="88" rx="14" fill="#0d1119" stroke="#232c3a" stroke-width="1.4"/>
+      <circle cx="84" cy="224" r="4" fill="#7c8894"/>
+      <text x="270" y="276" text-anchor="end" class="status" fill="#7c8894">source</text>
+      <text x="100" y="229" class="node-title">
+        <tspan x="100" dy="0">inventory cluster</tspan>
+      </text>
+      <text x="84" y="264" class="node-meta">
+        <tspan x="84" dy="0">nodes, VMs, LXC, storage</tspan>
+      </text>
+    </g>
+
+    <g class="node" data-node="tasks">
+      <rect x="66" y="332" width="220" height="88" rx="14" fill="#0d1119" stroke="#232c3a" stroke-width="1.4"/>
+      <circle cx="84" cy="354" r="4" fill="#7c8894"/>
+      
+      <text x="100" y="359" class="node-title">
+        <tspan x="100" dy="0">trace tasks</tspan>
+      </text>
+      <text x="84" y="394" class="node-meta">
+        <tspan x="84" dy="0">UPID status and logs</tspan>
+      </text>
+    </g>
+
+    <g class="node" data-node="guestRead">
+      <rect x="338" y="202" width="220" height="88" rx="14" fill="#0d1119" stroke="#d8a657" stroke-width="1.4"/>
+      <circle cx="356" cy="224" r="4" fill="#d8a657"/>
+      <text x="542" y="276" text-anchor="end" class="status" fill="#d8a657">gate</text>
+      <text x="372" y="229" class="node-title">
+        <tspan x="372" dy="0">guest reads</tspan>
+      </text>
+      <text x="356" y="264" class="node-meta">
+        <tspan x="356" dy="0">confirm before file or service</tspan><tspan x="356" dy="14">state</tspan>
+      </text>
+    </g>
+
+    <g class="node" data-node="safeWrite">
+      <rect x="610" y="202" width="220" height="88" rx="14" fill="#111824" stroke="#38bdf8" stroke-width="1.4"/>
+      <circle cx="628" cy="224" r="4" fill="#38bdf8"/>
+      <text x="814" y="276" text-anchor="end" class="status" fill="#38bdf8">focus</text>
+      <text x="644" y="229" class="node-title">
+        <tspan x="644" dy="0">safe writes</tspan>
+      </text>
+      <text x="628" y="264" class="node-meta">
+        <tspan x="628" dy="0">start, stop, snapshot, backup</tspan>
+      </text>
+    </g>
+
+    <g class="node" data-node="exec">
+      <rect x="610" y="332" width="220" height="88" rx="14" fill="#0d1119" stroke="#232c3a" stroke-width="1.4"/>
+      <circle cx="628" cy="354" r="4" fill="#7c8894"/>
+      
+      <text x="644" y="359" class="node-title">
+        <tspan x="644" dy="0">in-guest exec</tspan>
+      </text>
+      <text x="628" y="394" class="node-meta">
+        <tspan x="628" dy="0">confirm before command</tspan>
+      </text>
+    </g>
+
+    <g class="node" data-node="destructive">
+      <rect x="882" y="202" width="220" height="88" rx="14" fill="#0d1119" stroke="#d8a657" stroke-width="1.4"/>
+      <circle cx="900" cy="224" r="4" fill="#d8a657"/>
+      <text x="1086" y="276" text-anchor="end" class="status" fill="#d8a657">gate</text>
+      <text x="916" y="229" class="node-title">
+        <tspan x="916" dy="0">three-part gate</tspan>
+      </text>
+      <text x="900" y="264" class="node-meta">
+        <tspan x="900" dy="0">confirm + destructive + env</tspan>
+      </text>
+    </g>
+  <path d="M 66 434 H 1102" stroke="#1a2230" stroke-width="1"/>
+  <text x="66" y="454" class="footer">read open · confirm writes · destructive flag required</text>
+</svg>

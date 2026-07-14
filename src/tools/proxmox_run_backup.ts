@@ -2,6 +2,7 @@ import { Type } from "@sinclair/typebox";
 import type { ClientFactory } from "./_util.ts";
 import { jsonToolResult, resolveResource, validateToolArgs } from "./_util.ts";
 import { assertConfirmedWrite } from "../gates.ts";
+import { taskWaitFields, resolveTaskWait, type TaskWaitArgs } from "./task-wait.ts";
 
 const Schema = Type.Object(
   {
@@ -19,6 +20,7 @@ const Schema = Type.Object(
     confirm: Type.Boolean({
       description: "Must be true to write. Tier-2 safe-write gate.",
     }),
+    ...taskWaitFields,
   },
   { additionalProperties: false },
 );
@@ -41,7 +43,7 @@ export function createProxmoxRunBackupTool(getClient: ClientFactory) {
         storage: string;
         mode?: BackupMode;
         confirm: boolean;
-      }>(Schema, raw, NAME);
+      } & TaskWaitArgs>(Schema, raw, NAME);
       const mode: BackupMode = args.mode ?? "snapshot";
       const client = getClient();
       const { node } = await resolveResource(client, args.vmid);
@@ -51,12 +53,14 @@ export function createProxmoxRunBackupTool(getClient: ClientFactory) {
         mode,
         compress: "zstd",
       });
+      const task = await resolveTaskWait(client, upid, args);
       return jsonToolResult({
         vmid: args.vmid,
         node,
         storage: args.storage,
         mode,
         upid,
+        ...(task ? { task } : {}),
       });
     },
   };
