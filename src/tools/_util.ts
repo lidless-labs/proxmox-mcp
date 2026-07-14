@@ -66,6 +66,9 @@ export async function resolveResource(
     const where = matches.map((m) => `${m.node}/${m.type}`).join(", ");
     throw new Error(`vmid ${vmid} ambiguous - found on multiple nodes: ${where}. Refusing to proceed.`);
   }
+  // Defense in depth: this node is interpolated into request paths by callers.
+  // Validate it even though it comes from the trusted cluster-resources API.
+  assertSafePathSegment(matches[0].node, "node");
   return { node: matches[0].node, type: matches[0].type as "lxc" | "qemu" };
 }
 
@@ -77,5 +80,8 @@ export function parseTaskUpid(upid: string): { node: string } {
   if (parts.length < 8) throw new Error(`invalid UPID format: ${upid}`);
   const node = parts[1];
   if (!node) throw new Error(`UPID missing node segment: ${upid}`);
+  // The node is interpolated into `/nodes/{node}/tasks/...`; reject anything
+  // outside the PVE node charset so a crafted UPID can't traverse the API path.
+  if (!SAFE_SEGMENT_RE.test(node)) throw new Error(`invalid UPID format: bad node segment "${node}"`);
   return { node };
 }

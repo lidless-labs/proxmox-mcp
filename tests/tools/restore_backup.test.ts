@@ -73,6 +73,13 @@ describe("proxmox_restore_backup", () => {
     ).rejects.toThrow(WriteGateError);
   });
 
+  it("rejects an unsafe user-supplied node", async () => {
+    fake = await startFakeProxmox([emptyCluster]);
+    await expect(
+      makeTool().execute("t", { vmid: 950, archive, node: "../../access", confirm: true }),
+    ).rejects.toThrow(ToolInputError);
+  });
+
   it("errors when type cannot be inferred and none supplied", async () => {
     fake = await startFakeProxmox([emptyCluster]);
     await expect(

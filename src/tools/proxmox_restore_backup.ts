@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { ClientFactory } from "./_util.ts";
-import { jsonToolResult, validateToolArgs, ToolInputError } from "./_util.ts";
+import { jsonToolResult, validateToolArgs, ToolInputError, assertSafePathSegment } from "./_util.ts";
 import { assertConfirmedWrite, assertDestructive, assertEnvFlag } from "../gates.ts";
 import { taskWaitFields, resolveTaskWait, type TaskWaitArgs } from "./task-wait.ts";
 
@@ -111,8 +111,10 @@ export function createProxmoxRestoreBackupTool(getClient: ClientFactory) {
         }
         node = existing.node;
       } else {
-        node = args.node ?? "";
-        if (!node) {
+        if (args.node) {
+          assertSafePathSegment(args.node, "node");
+          node = args.node;
+        } else {
           const nodes = resources.filter((r) => r.type === "node");
           if (nodes.length === 0) throw new Error("no nodes found in cluster resources");
           node = nodes[0].node;

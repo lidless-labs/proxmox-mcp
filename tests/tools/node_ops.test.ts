@@ -44,6 +44,13 @@ describe("node ops tools", () => {
     await expect(createProxmoxCancelTaskTool(client).execute("t", { upid: "UPID:pve:1:2:3:4:5:x:" })).rejects.toThrow(WriteGateError);
   });
 
+  it("cancel_task rejects a UPID with a path-traversal node segment", async () => {
+    fake = await startFakeProxmox([]);
+    await expect(
+      createProxmoxCancelTaskTool(client).execute("t", { upid: "UPID:../../access:1:2:3:x:100:u:", confirm: true }),
+    ).rejects.toThrow(/invalid UPID/);
+  });
+
   it("cancel_task DELETEs task parsed from UPID node", async () => {
     fake = await startFakeProxmox([
       { method: "DELETE", path: "/api2/json/nodes/pve/tasks/" + encodeURIComponent("UPID:pve:1:2:3:vzdump:100:u:"), status: 200, body: { data: null } },
