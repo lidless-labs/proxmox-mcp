@@ -6,6 +6,10 @@ All notable changes to proxmox-mcp are documented here. The format is based on [
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-07-14
+
+Large control-surface expansion: 42 -> 96 tools across config-mutation, lifecycle, storage, node-ops, firewall, disk/storage management, access control, and cluster/HA/SDN, plus agent-UX ergonomics (task-await, guest-agent exec backend, CLI reads). Every new write was verified end-to-end against a live Proxmox VE 9.2 cluster except storage replication (needs a second node).
+
 ### Added
 
 - **Cluster / HA / SDN observability** (tool surface 82 -> 96): `cluster_status`, `ha_status`, `list_ha_resources`, `list_ha_rules` (PVE 9+ replacement for HA groups), `list_replication`, `list_sdn_zones`, `list_sdn_vnets`, `list_metric_servers`, `get_cluster_options`, `cluster_log` (reads); `add_ha_resource`/`delete_ha_resource` and `create_replication`/`delete_replication` (Tier-2). Reads and the HA add/remove path verified live on a PVE 9.2 node; replication writes are fake-tested only (no second node available to replicate to). HA management requires a `Sys.Console` token.
