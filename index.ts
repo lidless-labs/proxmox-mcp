@@ -84,6 +84,11 @@ export default definePluginEntry({
     register(tools.createProxmoxGetFirewallOptionsTool(getClient));
     register(tools.createProxmoxListStorageConfigTool(getClient));
     register(tools.createProxmoxListBackupJobsTool(getClient));
+    register(tools.createProxmoxListUsersTool(getClient));
+    register(tools.createProxmoxListRolesTool(getClient));
+    register(tools.createProxmoxListAclTool(getClient));
+    register(tools.createProxmoxListPoolsTool(getClient));
+    register(tools.createProxmoxListTokensTool(getClient));
     // Safe writes
     register(tools.createProxmoxStartResourceTool(getClient));
     register(tools.createProxmoxStopResourceTool(getClient));
@@ -106,6 +111,12 @@ export default definePluginEntry({
     register(tools.createProxmoxCreateStorageTool(getClient));
     register(tools.createProxmoxCreateBackupJobTool(getClient));
     register(tools.createProxmoxDeleteBackupJobTool(getClient));
+    register(tools.createProxmoxSetAclTool(getClient));
+    register(tools.createProxmoxCreateTokenTool(getClient));
+    register(tools.createProxmoxDeleteTokenTool(getClient));
+    register(tools.createProxmoxCreatePoolTool(getClient));
+    register(tools.createProxmoxUpdatePoolTool(getClient));
+    register(tools.createProxmoxDeletePoolTool(getClient));
     register(tools.createProxmoxDownloadUrlTool(getClient));
     register(tools.createProxmoxCancelTaskTool(getClient));
     register(tools.createProxmoxAddFirewallRuleTool(getClient));
