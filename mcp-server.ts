@@ -103,11 +103,22 @@ const tools = [
   toolFactories.createProxmoxListBackupJobsTool(getClient),
   toolFactories.createProxmoxCreateBackupJobTool(getClient),
   toolFactories.createProxmoxDeleteBackupJobTool(getClient),
+  toolFactories.createProxmoxListUsersTool(getClient),
+  toolFactories.createProxmoxListRolesTool(getClient),
+  toolFactories.createProxmoxListAclTool(getClient),
+  toolFactories.createProxmoxListPoolsTool(getClient),
+  toolFactories.createProxmoxListTokensTool(getClient),
+  toolFactories.createProxmoxSetAclTool(getClient),
+  toolFactories.createProxmoxCreateTokenTool(getClient),
+  toolFactories.createProxmoxDeleteTokenTool(getClient),
+  toolFactories.createProxmoxCreatePoolTool(getClient),
+  toolFactories.createProxmoxUpdatePoolTool(getClient),
+  toolFactories.createProxmoxDeletePoolTool(getClient),
 ];
 
 const toolMap = new Map(tools.map((t) => [t.name, t]));
 
-const server = new Server({ name: "proxmox-mcp", version: "0.9.0" }, { capabilities: { tools: {} } });
+const server = new Server({ name: "proxmox-mcp", version: "0.10.0" }, { capabilities: { tools: {} } });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.parameters })),
