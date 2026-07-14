@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Why: your homelab lives in Proxmox, and you want an agent to inventory it, boot a guest, or trace a task without you clicking through the web UI. How it differs: a strict three-tier write gate is built into every tool, so reads are open but anything that changes state needs an explicit confirm flag, and anything destructive needs two more gates on top. <strong>Status: WIP.</strong> The tool surface and the safety model are stable, but the package is still pre-1.0 and the latest published release is <code>0.3.0</code>.
+  Why: your homelab lives in Proxmox, and you want an agent to inventory it, boot a guest, or trace a task without you clicking through the web UI. How it differs: a strict three-tier write gate is built into every tool, so reads are open but anything that changes state needs an explicit confirm flag, and anything destructive needs two more gates on top. <strong>Status: WIP.</strong> The tool surface and the safety model are stable, but the package is still pre-1.0. The latest release is <code>0.11.0</code>.
 </p>
 
 <p align="center">
@@ -195,7 +195,7 @@ claude mcp add proxmox -s user -- npx -y @solomonneas/proxmox-mcp
 
 Then ask your agent to list your cluster's containers. Reads work with nothing but the three credential vars; write and destructive tiers stay gated until you opt in.
 
-> Note: the latest version published to npm is `0.3.0`. This repository tracks ahead of npm; install pins the published release.
+> Note: the latest published version is `0.11.0`. `npx`/`npm install` pins the published release; this repository may track ahead between releases.
 
 ## Configuration
 

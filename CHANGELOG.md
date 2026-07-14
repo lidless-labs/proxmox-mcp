@@ -2,7 +2,7 @@
 
 All notable changes to proxmox-mcp are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once it reaches 1.0.
 
-> proxmox-mcp is WIP and pre-1.0. The latest version published to npm is `0.3.0`; later entries below describe work that is in the repository ahead of the npm release.
+> proxmox-mcp is WIP and pre-1.0. The latest published version is `0.11.0`; anything under `[Unreleased]` is in the repository but not yet in a tagged release.
 
 ## [Unreleased]
 
@@ -57,7 +57,7 @@ Large control-surface expansion: 42 -> 96 tools across config-mutation, lifecycl
 
 ## [0.3.0]
 
-- Latest release published to npm.
+- Published to npm (the last release before the 0.4.0 - 0.11.0 development cycle).
 - Read, safe-write, and destructive tool tiers with the three-tier write gate.
 - Token-secret redactor and TLS-insecure toggle for homelab self-signed certs.
 
