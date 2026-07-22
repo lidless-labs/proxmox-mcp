@@ -8,6 +8,7 @@ import { registerSecret, redact } from "./src/security.ts";
 import type { SshExecutor } from "./src/tools/_util.ts";
 import * as toolFactories from "./src/tools/index.ts";
 import { classifyToolError } from "./src/errors.ts";
+import { TOOL_TIERS, annotationsForTier, tierForTool } from "./src/registry.ts";
 import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
@@ -132,10 +133,32 @@ const tools = [
 
 const toolMap = new Map(tools.map((t) => [t.name, t]));
 
+// Fail closed at startup if the access-tier registry and the registered tool set
+// have drifted apart: every registered tool must declare a tier, and the registry
+// must not name a tool that is not registered. This keeps a new tool from shipping
+// without a tier (and thus without correct MCP safety annotations).
+{
+  const registered = new Set(tools.map((t) => t.name));
+  const declared = new Set(Object.keys(TOOL_TIERS));
+  const missing = [...registered].filter((n) => !declared.has(n));
+  const extra = [...declared].filter((n) => !registered.has(n));
+  if (missing.length > 0 || extra.length > 0) {
+    throw new Error(
+      `registry/tool drift: missing tier for [${missing.join(", ")}]; ` +
+        `tier declared for unregistered [${extra.join(", ")}]`,
+    );
+  }
+}
+
 const server = new Server({ name: "proxmox-mcp", version: "0.11.0" }, { capabilities: { tools: {} } });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.parameters })),
+  tools: tools.map((t) => ({
+    name: t.name,
+    description: t.description,
+    inputSchema: t.parameters,
+    annotations: annotationsForTier(tierForTool(t.name)),
+  })),
 }));
 
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
