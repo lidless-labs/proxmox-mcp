@@ -1,0 +1,386 @@
+[
+  {
+    "name": "proxmox_add_firewall_rule",
+    "description": "Add a firewall rule at the cluster, node, or guest scope (POST {base}/firewall/rules). Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_add_ha_resource",
+    "description": "Place a VM or container under HA management (POST /cluster/ha/resources). Only meaningful on a quorate multi-node cluster. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_audit_permissions",
+    "description": "Read effective Proxmox permissions for the current token or a specified user/token across smoke-relevant paths (GET /access/permissions)."
+  },
+  {
+    "name": "proxmox_cancel_task",
+    "description": "Stop a running Proxmox task by UPID (DELETE /nodes/{node}/tasks/{upid}) - e.g. abort a stuck migration or backup. The node is parsed from the UPID. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_cleanup_smoke_resources",
+    "description": "Preview or destroy smoke-test LXC/QEMU resources from a pool when their names match the smoke prefix. Defaults to dry_run:true. Actual deletion requires dry_run:false, confirm:true, destructive:true, and PROXMOX_ENABLE_DESTRUCTIVE=1."
+  },
+  {
+    "name": "proxmox_clone_resource",
+    "description": "Clone an existing LXC or QEMU resource by source_vmid to a new_vmid (POST /nodes/{node}/{type}/{source_vmid}/clone). Resolves source node/type from cluster resources. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_cluster_log",
+    "description": "Read the recent cluster-wide log (GET /cluster/log): task start/end, auth, and daemon messages across all nodes. Tier-1 read."
+  },
+  {
+    "name": "proxmox_cluster_status",
+    "description": "Cluster membership + quorum: each node's id, IP, online state, and (on a cluster) the quorate flag. (GET /cluster/status). Tier-1 read."
+  },
+  {
+    "name": "proxmox_convert_to_template",
+    "description": "Convert a stopped VM or container into a template (POST /nodes/{node}/{type}/{vmid}/template). One-way: a template cannot be started, only cloned from. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_create_backup_job",
+    "description": "Create a scheduled backup (vzdump) job (POST /cluster/backup). Specify a schedule + storage and a selection (all, vmid list, or pool). Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_create_container",
+    "description": "Create a new LXC container on a node (POST /nodes/{node}/lxc) with sensible defaults (storage local-lvm, 512MiB, 1 core, 8GB rootfs, DHCP net). Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_create_pool",
+    "description": "Create a resource pool (POST /pools). Add guests/storage to it with proxmox_update_pool. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_create_replication",
+    "description": "Create a storage replication job for a guest to another node (POST /cluster/replication). Requires a multi-node cluster with a different target node. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_create_storage",
+    "description": "Define a new datacenter storage (POST /storage) of a given type with content types and type-specific keys via `options`. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_create_token",
+    "description": "Create an API token for a user (POST /access/users/{userid}/token/{tokenid}). Returns the secret ONCE - it cannot be retrieved later. With privsep (default), grant it access separately via proxmox_set_acl. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_create_vm",
+    "description": "Create a new QEMU VM on a node (POST /nodes/{node}/qemu) with sensible defaults (2GiB, 2 cores, 32GB disk on local-lvm, virtio net). Optionally attaches an ISO as ide2 cdrom. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_delete_backup_job",
+    "description": "Delete a scheduled backup job by id (DELETE /cluster/backup/{id}). Removes the schedule only; existing backup archives are untouched. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_delete_firewall_rule",
+    "description": "Delete a firewall rule by position at the cluster, node, or guest scope (DELETE {base}/firewall/rules/{pos}). Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_delete_ha_resource",
+    "description": "Remove a VM or container from HA management (DELETE /cluster/ha/resources/{sid}). The guest keeps running; only HA management stops. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_delete_pool",
+    "description": "Delete a resource pool (DELETE /pools/{poolid}). Proxmox requires the pool to be empty first; guests/storage are not deleted, only the grouping. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_delete_replication",
+    "description": "Delete a storage replication job (DELETE /cluster/replication/{id}). Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_delete_snapshot",
+    "description": "Delete a named snapshot from an LXC container or QEMU VM (DELETE /nodes/{node}/{type}/{vmid}/snapshot/{snapname}). Tier-3 destructive; requires confirm:true, destructive:true, and env PROXMOX_ENABLE_DESTRUCTIVE=1."
+  },
+  {
+    "name": "proxmox_delete_storage",
+    "description": "Remove a storage definition from the datacenter config (DELETE /storage/{id}). Does not erase the underlying data, but detaches it from Proxmox. Tier-3 destructive; requires confirm:true, destructive:true, and env PROXMOX_ENABLE_DESTRUCTIVE=1."
+  },
+  {
+    "name": "proxmox_delete_token",
+    "description": "Revoke an API token (DELETE /access/users/{userid}/token/{tokenid}). Immediately invalidates the token. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_delete_volume",
+    "description": "Permanently delete a storage volume - a backup archive, ISO, template, or disk image (DELETE /nodes/{node}/storage/{storage}/content/{volume}). Tier-3 destructive; requires confirm:true, destructive:true, and env PROXMOX_ENABLE_DESTRUCTIVE=1."
+  },
+  {
+    "name": "proxmox_destroy_resource",
+    "description": "Permanently delete an LXC container or QEMU VM by vmid (DELETE /nodes/{node}/{type}/{vmid}). Tier-3 destructive; requires confirm:true, destructive:true, and env PROXMOX_ENABLE_DESTRUCTIVE=1."
+  },
+  {
+    "name": "proxmox_download_url",
+    "description": "Download an ISO or container template from a URL onto a storage (POST /nodes/{node}/storage/{storage}/download-url). Optional checksum verification. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_exec",
+    "description": "Run a shell command inside an LXC container (via SSH+pct exec) or QEMU VM (via direct SSH by default, or the qemu-guest-agent API when PROXMOX_EXEC_BACKEND=guest-agent - no in-guest SSH key needed). Returns stdout/stderr/exit_code. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_force_stop_resource",
+    "description": "Hard-kill an LXC container or QEMU VM (POST /nodes/{node}/{type}/{vmid}/status/stop). Unlike reboot/shutdown this is a non-graceful stop. Tier-3 destructive; requires confirm:true, destructive:true, and env PROXMOX_ENABLE_DESTRUCTIVE=1."
+  },
+  {
+    "name": "proxmox_get_cluster_options",
+    "description": "Read datacenter-wide options (GET /cluster/options): keyboard, MAC prefix, allowed tags, default migration settings, etc. Tier-1 read."
+  },
+  {
+    "name": "proxmox_get_container_config",
+    "description": "Get LXC container config by vmid (GET /nodes/{node}/lxc/{vmid}/config). Fails if the vmid is not an LXC container."
+  },
+  {
+    "name": "proxmox_get_firewall_options",
+    "description": "Read firewall options at the cluster, node, or guest scope (GET {base}/firewall/options): whether the firewall is enabled, default in/out policy, logging. Tier-1 read."
+  },
+  {
+    "name": "proxmox_get_resource",
+    "description": "Get full current status for one LXC or VM by vmid (resolves node+type from cluster resources, then GET /nodes/{node}/{type}/{vmid}/status/current)."
+  },
+  {
+    "name": "proxmox_get_task_log",
+    "description": "Tail a Proxmox task log by UPID via GET /nodes/{node}/tasks/{upid}/log?start=N&limit=M. Node is parsed from the UPID. Returns { lines, total }."
+  },
+  {
+    "name": "proxmox_get_task_status",
+    "description": "Get the current status of a Proxmox task by UPID (running/stopped, exit status) via GET /nodes/{node}/tasks/{upid}/status. Node is parsed from the UPID."
+  },
+  {
+    "name": "proxmox_get_vm_config",
+    "description": "Get QEMU VM config by vmid (GET /nodes/{node}/qemu/{vmid}/config). Fails if the vmid is not a QEMU VM."
+  },
+  {
+    "name": "proxmox_guest_network",
+    "description": "Return guest network interfaces and usable IPv4 addresses for a QEMU VM via guest agent or an LXC container via its interfaces endpoint."
+  },
+  {
+    "name": "proxmox_ha_status",
+    "description": "Current HA manager status: quorum, fencing/CRM state, and per-resource HA state. (GET /cluster/ha/status/current). Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_acl",
+    "description": "List access-control entries (GET /access/acl): which user/group/token holds which role on which path, and whether it propagates. Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_backup_jobs",
+    "description": "List scheduled backup (vzdump) jobs (GET /cluster/backup): id, schedule, target storage, selection, and enabled state. Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_backups",
+    "description": "List backup volumes on a node. Walks each backup-capable storage via GET /nodes/{node}/storage/{storage}/content?content=backup. Optionally filter by vmid."
+  },
+  {
+    "name": "proxmox_list_containers",
+    "description": "List every LXC container across the cluster (vmid, name, node, status, CPU/mem) via GET /cluster/resources?type=vm filtered client-side to type=lxc."
+  },
+  {
+    "name": "proxmox_list_directory",
+    "description": "List one directory inside an LXC container or QEMU VM. Gated guest read; requires confirm:true."
+  },
+  {
+    "name": "proxmox_list_disks",
+    "description": "List a node's physical disks with model, size, type, SMART health and wearout (GET /nodes/{node}/disks/list). Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_firewall_rules",
+    "description": "List firewall rules at the cluster, node, or guest scope (GET {base}/firewall/rules). Returns rule position, action, direction, and match fields. Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_ha_resources",
+    "description": "HA-managed resources (sid, state, group/comment). (GET /cluster/ha/resources). Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_ha_rules",
+    "description": "HA rules (PVE 9+ replacement for HA groups): node affinity and resource placement. (GET /cluster/ha/rules). Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_metric_servers",
+    "description": "External metrics servers (InfluxDB/Graphite) configured for the cluster. (GET /cluster/metrics/server). Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_node_services",
+    "description": "List the Proxmox host's systemd services and their state (GET /nodes/{node}/services): pveproxy, pvedaemon, pve-cluster, corosync, etc. Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_pool_resources",
+    "description": "List resources assigned to a Proxmox pool (GET /pools/{pool}). Defaults to the mcp-smoke pool for smoke-test audits."
+  },
+  {
+    "name": "proxmox_list_pools",
+    "description": "List all resource pools (GET /pools) with their comments. Use proxmox_list_pool_resources for a pool's members. Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_replication",
+    "description": "Storage replication jobs (id, source guest, target node, schedule). (GET /cluster/replication). Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_roles",
+    "description": "List Proxmox roles and their privileges (GET /access/roles). Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_sdn_vnets",
+    "description": "Software-defined-networking virtual networks. (GET /cluster/sdn/vnets). Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_sdn_zones",
+    "description": "Software-defined-networking zones. (GET /cluster/sdn/zones). Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_snapshots",
+    "description": "List snapshots for one LXC container or QEMU VM via GET /nodes/{node}/{type}/{vmid}/snapshot."
+  },
+  {
+    "name": "proxmox_list_storage",
+    "description": "List Proxmox storage status on one node or all nodes via GET /nodes/{node}/storage."
+  },
+  {
+    "name": "proxmox_list_storage_config",
+    "description": "List datacenter storage definitions (GET /storage): id, type, allowed content, node restrictions, shared/disabled flags. This is the cluster storage configuration, distinct from per-node status. Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_storage_content",
+    "description": "List volumes on a storage (GET /nodes/{node}/storage/{storage}/content): ISOs, container templates, disk images, and backups, with size + owning vmid. Optionally filter by content type or vmid. Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_templates",
+    "description": "List available LXC container templates (vztmpl) and/or VM ISOs on a node/storage (GET /nodes/{node}/storage/{storage}/content?content=vztmpl|iso). Defaults to both kinds on storage 'local'."
+  },
+  {
+    "name": "proxmox_list_tokens",
+    "description": "List API tokens for a user (GET /access/users/{userid}/token). Secrets are never returned by Proxmox after creation. Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_updates",
+    "description": "List pending APT package updates on a node (GET /nodes/{node}/apt/update): package, current and candidate versions. Read-only; does not refresh the index or install anything. Note: Proxmox gates this endpoint behind the Sys.Modify privilege, so an audit-only token gets 403. Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_users",
+    "description": "List Proxmox access users (GET /access/users): userid, realm, enabled/expire state, comment. Tier-1 read."
+  },
+  {
+    "name": "proxmox_list_vms",
+    "description": "List every QEMU VM across the cluster (vmid, name, node, status, CPU/mem) via GET /cluster/resources?type=vm filtered client-side to type=qemu."
+  },
+  {
+    "name": "proxmox_migrate_resource",
+    "description": "Migrate a VM or container to another node (POST /nodes/{node}/{type}/{vmid}/migrate). QEMU supports online (live) migration; LXC uses restart mode. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_move_disk",
+    "description": "Relocate a VM disk (POST /nodes/{node}/qemu/{vmid}/move_disk) or container volume (POST /nodes/{node}/lxc/{vmid}/move_volume) to another storage. Optionally deletes the source after a successful copy. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_next_vmid",
+    "description": "Return the next available Proxmox VMID via GET /cluster/nextid."
+  },
+  {
+    "name": "proxmox_node_power",
+    "description": "Reboot or shut down an entire Proxmox node (POST /nodes/{node}/status), which takes down every guest on it. Tier-3 destructive; requires confirm:true, destructive:true, and env PROXMOX_ENABLE_DESTRUCTIVE=1."
+  },
+  {
+    "name": "proxmox_read_file",
+    "description": "Read a file from inside an LXC container or QEMU VM. Gated guest read; requires confirm:true."
+  },
+  {
+    "name": "proxmox_reboot_resource",
+    "description": "Reboot an LXC container or QEMU VM by vmid (POST status/reboot). Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_recent_tasks",
+    "description": "List recent cluster tasks (UPID, type, status, node, user, timing) via GET /cluster/tasks. Optionally filter by vmid (post-filter client-side)."
+  },
+  {
+    "name": "proxmox_reset_resource",
+    "description": "Hard-reset a running QEMU VM (POST /nodes/{node}/qemu/{vmid}/status/reset) - equivalent to the reset button, no graceful shutdown. QEMU only. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_resize_disk",
+    "description": "Grow a VM or container disk (PUT /nodes/{node}/{type}/{vmid}/resize) with {disk,size}. Size is absolute ('32G') or an increment ('+2G'); Proxmox only grows disks. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_resource_usage",
+    "description": "Get historical CPU/memory/disk/network samples for one LXC or VM via GET /nodes/{node}/{type}/{vmid}/rrddata?timeframe=<hour|day|week>."
+  },
+  {
+    "name": "proxmox_restore_backup",
+    "description": "Restore a vzdump/PBS backup into a VMID (POST /nodes/{node}/{type}/{vmid} with restore=1). Restoring to a new VMID is Tier-2 (confirm:true). Overwriting an EXISTING VMID wipes its disks and additionally requires force:true, destructive:true, and env PROXMOX_ENABLE_DESTRUCTIVE=1."
+  },
+  {
+    "name": "proxmox_resume_resource",
+    "description": "Resume a suspended LXC or QEMU guest (POST /nodes/{node}/{type}/{vmid}/status/resume). Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_rollback_snapshot",
+    "description": "Roll back an LXC container or QEMU VM to a named snapshot. Tier-3 destructive because it reverts guest state; requires confirm:true, destructive:true, and env PROXMOX_ENABLE_DESTRUCTIVE=1."
+  },
+  {
+    "name": "proxmox_run_backup",
+    "description": "Trigger a vzdump backup of a single vmid to a target storage (POST /nodes/{node}/vzdump with {vmid, storage, mode, compress:'zstd'}). Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_service_restart",
+    "description": "Restart a systemd service inside an LXC container or QEMU VM. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_service_start",
+    "description": "Start a systemd service inside an LXC container or QEMU VM. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_service_status",
+    "description": "Return systemd service status from inside an LXC container or QEMU VM. Gated guest read; requires confirm:true."
+  },
+  {
+    "name": "proxmox_service_stop",
+    "description": "Stop a systemd service inside an LXC container or QEMU VM. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_set_acl",
+    "description": "Grant or remove a role for a user/token or group on a path (PUT /access/acl). Set remove:true to revoke. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_set_firewall_enabled",
+    "description": "Enable or disable the firewall at the cluster, node, or guest scope (PUT {base}/firewall/options with enable). Note: the cluster-level switch gates all others. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_snapshot_resource",
+    "description": "Create a snapshot of an LXC container or QEMU VM by vmid (POST /snapshot with {snapname, description?}). Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_start_resource",
+    "description": "Start a stopped LXC container or QEMU VM by vmid. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_stat_path",
+    "description": "Return structured metadata for a path inside an LXC container or QEMU VM. Gated guest read; requires confirm:true."
+  },
+  {
+    "name": "proxmox_status",
+    "description": "Get PVE version + per-node status (online state, CPU, memory, uptime) via GET /version + GET /cluster/resources?type=node."
+  },
+  {
+    "name": "proxmox_stop_resource",
+    "description": "Gracefully shutdown an LXC container or QEMU VM by vmid (POST status/shutdown). Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_suspend_resource",
+    "description": "Suspend (pause) a running LXC or QEMU guest (POST /nodes/{node}/{type}/{vmid}/status/suspend). QEMU can suspend to disk with todisk:true. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_update_container_config",
+    "description": "Edit an existing LXC container's config (PUT /nodes/{node}/lxc/{vmid}/config): cores, memory, swap, hostname, nameserver, description, onboot, tags, plus arbitrary keys via `set` and key removal via `unset`. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_update_pool",
+    "description": "Add or remove guests/storage in a resource pool, or update its comment (PUT /pools/{poolid}). Set remove:true to detach the listed members. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_update_vm_config",
+    "description": "Edit an existing QEMU VM's config (PUT /nodes/{node}/qemu/{vmid}/config): cores, memory, sockets, balloon, name, description, onboot, tags, plus arbitrary keys via `set` and key removal via `unset`. Some changes (CPU/mem/disk on a running VM) apply as pending until reboot. Tier-2 write; requires confirm:true."
+  },
+  {
+    "name": "proxmox_validate_qemu_smoke_source",
+    "description": "Validate that a QEMU VM is a safe live-smoke clone source. Checks passthrough devices, guest agent, running state, and disk size before cloning."
+  },
+  {
+    "name": "proxmox_wait_task",
+    "description": "Poll a Proxmox task by UPID until it stops or the timeout expires. Returns done:false on timeout with the last status."
+  },
+  {
+    "name": "proxmox_write_file",
+    "description": "Write a text file to a path inside an LXC container or QEMU VM. Creates parent directories. Tier-2 write; requires confirm:true."
+  }
+]

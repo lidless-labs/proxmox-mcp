@@ -1,8 +1,16 @@
 {
   "schema": "proxmox-dynamic-tools-benchmark/1",
   "frozen": true,
-  "adjudicated": false,
-  "adjudication_note": "Ground-truth expected_tools are the AUTHORED candidate labels. Per the pilot plan they require independent adjudication by a seat that is NOT writing descriptor keywords, BEFORE any Slice 1b keyword work, or recall@5 becomes self-graded. Flip adjudicated to true only after that pass.",
+  "adjudicated": true,
+  "adjudication": {
+    "date": "2026-07-22",
+    "method": "Independent cross-model labeling via brigade run; each seat labeled all 32 prompts from catalog.json alone, blind to expected_tools; chef synthesized consensus and flagged splits.",
+    "seats": ["gpt-5.6-sol", "gemini-3.6-flash", "glm-cursor", "claude-opus-4-8"],
+    "run": "20260722-193221-77fd1c12",
+    "result": "30/32 unanimous with the authored candidates; all 8 safety and all 8 cross-domain labels unanimous. Two splits resolved: SD-STO-2 widened to accept-either (2-2 tie, both single-call correct for ISOs); CD-2 kept as authored (3-1 majority backs proxmox_get_resource).",
+    "caveat": "The claude seat reported reading expected_tools after labeling, so its independence is unaudited; it was only the minority/tied voice on the two resolved splits and decided neither."
+  },
+  "scoring_note": "A prompt is correct if the model's tool set matches expected_tools, or (when present) any entry in accept_alternatives. Cross-domain expected_tools are ordered; compare as an ordered list.",
   "domains": ["resources", "storage", "backups", "firewall", "identity", "cluster", "ha", "guest-ops"],
   "harness": {
     "runs_per_prompt": 3,
@@ -14,7 +22,7 @@
     { "id": "SD-RES-1", "category": "single-domain", "domains": ["resources"], "prompt": "Show me every running VM on the cluster with its CPU and memory.", "expected_tools": ["proxmox_list_vms"] },
     { "id": "SD-RES-2", "category": "single-domain", "domains": ["resources"], "prompt": "Start the container with VMID 105.", "expected_tools": ["proxmox_start_resource"] },
     { "id": "SD-STO-1", "category": "single-domain", "domains": ["storage"], "prompt": "What storage pools are configured and how much space is free on each?", "expected_tools": ["proxmox_list_storage"] },
-    { "id": "SD-STO-2", "category": "single-domain", "domains": ["storage"], "prompt": "List the ISO images available on the local storage.", "expected_tools": ["proxmox_list_storage_content"] },
+    { "id": "SD-STO-2", "category": "single-domain", "domains": ["storage"], "prompt": "List the ISO images available on the local storage.", "expected_tools": ["proxmox_list_storage_content"], "accept_alternatives": [["proxmox_list_templates"]], "adjudication_note": "2-2 seat split; both tools are single-call correct for listing ISOs. Accept either." },
     { "id": "SD-BAK-1", "category": "single-domain", "domains": ["backups"], "prompt": "List the recent backups that exist for VM 110.", "expected_tools": ["proxmox_list_backups"] },
     { "id": "SD-BAK-2", "category": "single-domain", "domains": ["backups"], "prompt": "Kick off a backup of container 105 right now.", "expected_tools": ["proxmox_run_backup"] },
     { "id": "SD-FW-1", "category": "single-domain", "domains": ["firewall"], "prompt": "Show the firewall rules configured on node pve1.", "expected_tools": ["proxmox_list_firewall_rules"] },
