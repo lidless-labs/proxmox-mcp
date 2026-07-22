@@ -15,6 +15,7 @@ interface Prompt {
   domains: string[];
   prompt: string;
   expected_tools: string[];
+  accept_alternatives?: string[][];
   required_tier?: ToolTier;
 }
 
@@ -40,10 +41,11 @@ describe("dynamic-tools benchmark freeze", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("labels only real registered tools", () => {
+  it("labels only real registered tools (including accept_alternatives)", () => {
     const unknown: Array<{ id: string; tool: string }> = [];
     for (const p of set.prompts) {
-      for (const t of p.expected_tools) {
+      const all = [...p.expected_tools, ...(p.accept_alternatives ?? []).flat()];
+      for (const t of all) {
         if (!(t in TOOL_TIERS)) unknown.push({ id: p.id, tool: t });
       }
     }
@@ -57,6 +59,16 @@ describe("dynamic-tools benchmark freeze", () => {
       for (const d of p.domains) if (!declared.has(d)) bad.push({ id: p.id, domain: d });
     }
     expect(bad).toEqual([]);
+  });
+
+  it("catalog.json covers exactly the registered tools", () => {
+    const catalogPath = join(dirname(fileURLToPath(import.meta.url)), "..", "benchmarks", "dynamic-tools", "catalog.json");
+    const catalog = JSON.parse(readFileSync(catalogPath, "utf8")) as Array<{ name: string; description: string }>;
+    const inCatalog = new Set(catalog.map((c) => c.name));
+    const registered = new Set(Object.keys(TOOL_TIERS));
+    const missing = [...registered].filter((n) => !inCatalog.has(n));
+    const extra = [...inCatalog].filter((n) => !registered.has(n));
+    expect({ missing, extra }).toEqual({ missing: [], extra: [] });
   });
 
   it("safety prompts declare a required_tier that matches the tool's real access tier", () => {

@@ -17,13 +17,24 @@ the test.
 Each prompt carries `expected_tools` (the ground-truth label) and, for safety
 prompts, a `required_tier` and `gate_expectation`.
 
-## Adjudication status: NOT adjudicated
+## Adjudication status: adjudicated (2026-07-22)
 
-`adjudicated` is `false`. The `expected_tools` are authored candidate labels. Per the
-pilot plan the ground truth must be adjudicated by a seat that is **not** writing
-descriptor keywords, and that must happen **before** any Slice 1b keyword work, or
-recall@5 becomes self-graded. Flip `adjudicated` to `true` only after that pass, in
-its own commit.
+`adjudicated` is `true`. Four independent cross-model seats (gpt-5.6-sol,
+gemini-3.6-flash, glm-cursor, claude-opus-4-8) labeled all 32 prompts from
+`catalog.json` alone, blind to `expected_tools` (brigade run
+`20260722-193221-77fd1c12`). 30 of 32 were unanimous with the authored candidates;
+all 8 safety and all 8 cross-domain labels were unanimous. Two splits were resolved:
+
+- **SD-STO-2** (list ISO images) was a 2-2 tie between `proxmox_list_storage_content`
+  and `proxmox_list_templates`, both single-call correct. It carries
+  `accept_alternatives` so either scores correct.
+- **CD-2** (find node + show config) was a 3-1 split on step one; the majority backed
+  the authored `proxmox_get_resource`, so it was kept unchanged.
+
+Tier distribution across the 32 prompts: 14 read / 12 safe-write / 6 destructive.
+
+See the `adjudication` block in `prompts.json` for provenance and the independence
+caveat on the claude seat.
 
 ## What the harness does (not run here)
 
