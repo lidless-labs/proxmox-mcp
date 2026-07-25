@@ -228,7 +228,15 @@ Trailing slashes on `PROXMOX_URL` are stripped. The token secret is registered w
 
 Requirements and caveats:
 
-- **Your client must honor `notifications/tools/list_changed`.** Verified working on Claude Code 2.1.219. A client that ignores the notification will never see the loaded tools, so leave the flag off there. Default (flag unset) is the full static tool list exactly as before.
+- **Your client must honor `notifications/tools/list_changed`, and not all of them do.** Measured against a real connection:
+
+  | Client | Deferred mode | Notes |
+  | --- | --- | --- |
+  | Claude Code 2.1.219 | **works** | re-fetches `tools/list` 2ms after the notification, then calls the new tool |
+  | Cursor (cursor-agent 2026.07.23) | **does not work** | receives the notification, never re-lists; the agent is then told the tool does not exist |
+  | Codex CLI 0.145.0 | untested | could not dispatch MCP tool calls headlessly in our harness, so `list_changed` support is unknown |
+
+  A client that ignores the notification will see the search succeed, be told which tools were loaded, and then be unable to call any of them. Leave the flag unset there. Default (flag unset) is the full static tool list exactly as before, which is why static profiles remain the supported path.
 - On clients that apply their own tool deferral, a newly listed tool may be *visible but not immediately callable* until the client fetches its schema, which costs one extra turn.
 - **Hiding a tool is not a safety mechanism.** Destructive tools are searchable, and the gate chain is unchanged: a tool reached through search still requires `confirm: true`, `destructive: true`, and `PROXMOX_ENABLE_DESTRUCTIVE=1` exactly as it would otherwise. Search results carry each tool's tier and the gate arguments it will demand. The gates in `src/gates.ts` are the boundary; visibility is a token optimization.
 - Calling a tool by name that search has not surfaced still works. Refusing it would create a second, weaker enforcement surface without adding safety.
