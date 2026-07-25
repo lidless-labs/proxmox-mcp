@@ -212,9 +212,24 @@ PROXMOX_TOKEN_SECRET=00000000-0000-0000-0000-000000000000
 # Optional: skip TLS cert validation (homelab self-signed certs).
 # Accepts true/1/yes (case-insensitive). Defaults to false.
 PROXMOX_TLS_INSECURE=false
+
+# Optional (experimental): load tools on demand instead of listing all 96.
+# Accepts true/1/yes (case-insensitive). Defaults to false. See "Deferred tool loading".
+PROXMOX_DEFERRED_TOOLS=false
 ```
 
 Trailing slashes on `PROXMOX_URL` are stripped. The token secret is registered with the redactor on startup and masked from all log + error output.
+
+### Deferred tool loading (experimental)
+
+96 tool schemas cost roughly 17k tokens of context in every request, whether or not the agent needs a single one of them. Set `PROXMOX_DEFERRED_TOOLS=1` and the server instead starts with one tool, `proxmox_search_tools`. The agent describes its task, gets back matching tool descriptors, and those tools are added to that connection's tool list; the server emits `notifications/tools/list_changed`, the client re-reads the list, and the agent calls the tool it wants with its own real schema. Measured on a live connection, the visible `tools/list` payload drops from 68,495 bytes to 1,400, a 98% reduction.
+
+Requirements and caveats:
+
+- **Your client must honor `notifications/tools/list_changed`.** Verified working on Claude Code 2.1.219. A client that ignores the notification will never see the loaded tools, so leave the flag off there. Default (flag unset) is the full static tool list exactly as before.
+- On clients that apply their own tool deferral, a newly listed tool may be *visible but not immediately callable* until the client fetches its schema, which costs one extra turn.
+- **Hiding a tool is not a safety mechanism.** Destructive tools are searchable, and the gate chain is unchanged: a tool reached through search still requires `confirm: true`, `destructive: true`, and `PROXMOX_ENABLE_DESTRUCTIVE=1` exactly as it would otherwise. Search results carry each tool's tier and the gate arguments it will demand. The gates in `src/gates.ts` are the boundary; visibility is a token optimization.
+- Calling a tool by name that search has not surfaced still works. Refusing it would create a second, weaker enforcement surface without adding safety.
 
 ### In-container exec env vars
 
