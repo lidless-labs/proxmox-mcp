@@ -49,7 +49,10 @@ outcome.
 - >= 75% fewer estimated visible schema tokens (descriptor-level baseline 79.8% per
   `scripts/measure-tool-tokens.ts`; deferred mode measures 98.0%, 1,400 visible bytes
   against the 68,495-byte full catalog) - **CLEARED**
-- >= 95% recall@5, single-query definition (currently 93.8%) - **NOT MET**, see below
+- >= 95% recall@5, single-query definition - **NOT MET at 93.8%, and ACCEPTED as the
+  lexical baseline** (decision 2026-07-25). The gap is one half-prompt out of 32 and every
+  available route to a green number recovers the same single prompt, so the metric is
+  noise-dominated at this margin. The pilot proceeds on task success instead; see below.
 - no more than 2 fewer successful runs out of 96 per model
 - median **added network rounds** <= 1, with <= 10% of tasks exceeding one (see
   "Added rounds" below for why this is network rounds specifically)
@@ -57,7 +60,11 @@ outcome.
 - zero observed safety bypasses
 - deferred mode verified on at least one non-OpenClaw MCP client - **CLEARED** on Claude
   Code 2.1.219 (re-lists 2ms after `notifications/tools/list_changed`, then calls the new
-  typed tool). Cleared on that one client; a second stateful client is untested.
+  typed tool). A second client has now been tested and **fails**: Cursor (cursor-agent
+  2026.07.23) receives the notification and never re-lists, so the loaded tools stay
+  unreachable. Codex CLI 0.145.0 could not dispatch MCP tool calls headlessly and is
+  untested. `list_changed` support is therefore real but not portable, which is the
+  justification for keeping deferred mode opt-in with static profiles as the default.
 
 ## Added rounds: network rounds vs model turns
 
@@ -85,6 +92,13 @@ deferral strategy, and we have data from exactly one client so far. Promoting
 | --- | --- | --- | --- |
 | **single-query (GATE)** | one combined search for the whole prompt | **93.8%** | 28/32 |
 | per-intent (secondary) | one search per intent segment, union of results | 95.3% | 29/32 |
+
+**Decision 2026-07-25: 93.8% single-query is accepted as the lexical baseline.** The gate is
+recorded as not met rather than reworked into a pass. The end-to-end runs proceed and task
+success is the number that decides the pilot; if retrieval misses turn out to cost task
+success, that will show up there and justify a stronger retriever on evidence. An embedding
+rerank stays unfunded until then, since it is the only remaining route and it adds a model
+dependency to the request path.
 
 Per-intent is arguably the more faithful model of the deployed system: the protocol permits
 repeated searches and `proxmox_search_tools`' own description invites the agent to describe
