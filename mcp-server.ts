@@ -9,6 +9,15 @@ import type { SshExecutor } from "./src/tools/_util.ts";
 import * as toolFactories from "./src/tools/index.ts";
 import { classifyToolError } from "./src/errors.ts";
 import { TOOL_TIERS, annotationsForTier, tierForTool } from "./src/registry.ts";
+import { buildSearchIndex, TOOL_SEARCH_META } from "./src/search.ts";
+import {
+  createDeferredSession,
+  deferredModeEnabled,
+  runToolSearch,
+  SEARCH_TOOL_DESCRIPTION,
+  SEARCH_TOOL_NAME,
+  searchToolParameters,
+} from "./src/deferred.ts";
 import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
@@ -150,18 +159,68 @@ const toolMap = new Map(tools.map((t) => [t.name, t]));
   }
 }
 
-const server = new Server({ name: "proxmox-mcp", version: "0.11.0" }, { capabilities: { tools: {} } });
+// Deferred tool loading is opt-in. Off (the default), everything below behaves exactly
+// as it did before: the full tool set is visible and no search tool exists. On, only
+// proxmox_search_tools is visible at connect time and tools load per connection. See
+// src/deferred.ts for the invariants, including why visibility is not a safety gate.
+const deferred = deferredModeEnabled(process.env);
+const session = deferred ? createDeferredSession() : null;
+const searchIndex = deferred
+  ? buildSearchIndex(
+      tools.map((t) => ({ name: t.name, description: t.description })),
+      TOOL_SEARCH_META,
+    )
+  : null;
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: tools.map((t) => ({
-    name: t.name,
-    description: t.description,
-    inputSchema: t.parameters,
-    annotations: annotationsForTier(tierForTool(t.name)),
-  })),
-}));
+if (toolMap.has(SEARCH_TOOL_NAME)) {
+  throw new Error(`search tool name ${SEARCH_TOOL_NAME} collides with a registered tool`);
+}
+
+const server = new Server(
+  { name: "proxmox-mcp", version: "0.11.0" },
+  { capabilities: { tools: deferred ? { listChanged: true } : {} } },
+);
+
+const descriptorFor = (t: (typeof tools)[number]) => ({
+  name: t.name,
+  description: t.description,
+  inputSchema: t.parameters,
+  annotations: annotationsForTier(tierForTool(t.name)),
+});
+
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  if (!deferred || session === null) return { tools: tools.map(descriptorFor) };
+  return {
+    tools: [
+      {
+        name: SEARCH_TOOL_NAME,
+        description: SEARCH_TOOL_DESCRIPTION,
+        inputSchema: searchToolParameters,
+        annotations: { readOnlyHint: true },
+      },
+      ...tools.filter((t) => session.isLoaded(t.name)).map(descriptorFor),
+    ],
+  };
+});
 
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
+  if (deferred && session !== null && searchIndex !== null && req.params.name === SEARCH_TOOL_NAME) {
+    try {
+      const outcome = runToolSearch(
+        (req.params.arguments ?? {}) as Record<string, unknown>,
+        searchIndex,
+        session,
+      );
+      // Only notify when the visible set actually changed, so a repeated search does
+      // not make the client re-list for nothing.
+      if (outcome.added.length > 0) await server.sendToolListChanged();
+      return outcome.result;
+    } catch (e) {
+      const payload = redact(classifyToolError(e));
+      return { content: [{ type: "text", text: JSON.stringify(payload) }], isError: true };
+    }
+  }
+
   const t = toolMap.get(req.params.name);
   if (!t) {
     return {
@@ -176,6 +235,10 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       isError: true,
     };
   }
+  // A direct call to a registered tool that search has not surfaced yet is honored, and
+  // the tool is marked loaded so tools/list stays consistent with what the client just
+  // used. Visibility is a token optimization; the executor's gates are the boundary.
+  if (deferred && session !== null) session.load([t.name]);
   try {
     return await t.execute(req.params.name, (req.params.arguments ?? {}) as Record<string, unknown>);
   } catch (e) {
