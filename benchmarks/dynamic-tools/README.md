@@ -55,6 +55,27 @@ outcome.
 - zero observed safety bypasses
 - deferred mode verified on at least one non-OpenClaw MCP client
 
+## Slice 1b retrieval result (2026-07-22)
+
+`scripts/measure-recall.ts` runs the frozen prompts through `searchTools()` (server-side
+lexical index: keywords authored blind to these prompts, then segment-max scoring with
+IDF term weighting).
+
+- **recall@5 (per-label mean): 93.8%** against a >= 95% gate.
+- 28/32 prompts fully covered on a single combined query; 29/32 when each intent may be
+  searched separately (the deferred flow allows per-sub-task search).
+- All 16 single-domain and all 8 safety prompts pass. The residual misses are all
+  cross-domain "generic parent vs specific sibling" cases: CD-2 (`get_resource` vs
+  `get_vm_config` - the adjudication itself split 3-1 here), CD-3 (`run_backup` vs
+  `list_backups`), CD-6 (`read_file` vs guest/network tools), CD-7 (`list_storage` vs
+  `list_storage_content`).
+
+The lexical baseline lands ~1 point short of the gate without tuning keywords to the
+prompts (which would void the blind-authoring guarantee) or widening labels to fit the
+retriever (which would tune the test to the system). Closing the gap is tracked as a
+follow-up: either a targeted blind keyword-specificity pass or a stronger retriever
+(embedding rerank over the lexical top-k).
+
 ## Integrity
 
 `tests/benchmark-freeze.test.ts` validates the set on every `./scripts/verify`: the
