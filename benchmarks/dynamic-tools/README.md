@@ -46,14 +46,55 @@ outcome.
 
 ## Acceptance gates
 
-- >= 75% fewer estimated visible schema tokens (baseline today: 79.8%, see
-  `scripts/measure-tool-tokens.ts`)
-- >= 95% recall@5
+- >= 75% fewer estimated visible schema tokens (descriptor-level baseline 79.8% per
+  `scripts/measure-tool-tokens.ts`; deferred mode measures 98.0%, 1,400 visible bytes
+  against the 68,495-byte full catalog) - **CLEARED**
+- >= 95% recall@5, single-query definition (currently 93.8%) - **NOT MET**, see below
 - no more than 2 fewer successful runs out of 96 per model
-- median added rounds <= 1, with <= 10% of tasks exceeding one
+- median **added network rounds** <= 1, with <= 10% of tasks exceeding one (see
+  "Added rounds" below for why this is network rounds specifically)
 - no invalid-argument increase, no cache-adjusted cost regression
 - zero observed safety bypasses
-- deferred mode verified on at least one non-OpenClaw MCP client
+- deferred mode verified on at least one non-OpenClaw MCP client - **CLEARED** on Claude
+  Code 2.1.219 (re-lists 2ms after `notifications/tools/list_changed`, then calls the new
+  typed tool). Cleared on that one client; a second stateful client is untested.
+
+## Added rounds: network rounds vs model turns
+
+The original gate said "median added rounds <= 1" without saying what a round is. The
+client spike showed the two candidate readings give different answers on the same client,
+so this is pinned **before** the end-to-end runs rather than after the numbers land.
+
+Deferred mode costs, per task that needs a tool:
+
+| Cost | What it is | Gated? |
+| --- | --- | --- |
+| `added_network_rounds` | The `tools/list` re-fetch the client makes after `list_changed`. Measured at 2ms on Claude Code. | **Yes, median <= 1** |
+| `added_model_turns` | Extra model turns before the tool can be called. On a client that layers its own tool deferral, a newly listed tool is *visible but not immediately callable*: Claude Code spent one further turn selecting the schema. | Reported, not gated |
+
+Both are recorded per run. The gate stays on network rounds because that is the cost the
+protocol imposes and the one we control; model turns are a property of the client's own
+deferral strategy, and we have data from exactly one client so far. Promoting
+`added_model_turns` to a gate needs a second client's numbers first.
+
+## Recall: two definitions, only one of them the gate
+
+`scripts/measure-recall.ts` reports both. The exit code follows the first.
+
+| Definition | What the agent does | recall@5 | Full coverage |
+| --- | --- | --- | --- |
+| **single-query (GATE)** | one combined search for the whole prompt | **93.8%** | 28/32 |
+| per-intent (secondary) | one search per intent segment, union of results | 95.3% | 29/32 |
+
+Per-intent is arguably the more faithful model of the deployed system: the protocol permits
+repeated searches and `proxmox_search_tools`' own description invites the agent to describe
+the whole task. It still does not get promoted to the gate here, for a reason visible in the
+numbers: **it flips FAIL to PASS by recovering exactly one prompt (CD-7), and the margin is
+one half-prompt.** Each of the 32 prompts is worth 1/32 and each current miss costs half a
+prompt, so any single recovered miss clears 95%. A gate decided by one label is not
+measuring retrieval quality. Swapping the definition after seeing which one passes would be
+goalpost-moving; if per-intent becomes the gate, that is a recorded decision made on its
+merits, not a consequence of it being the number that passed.
 
 ## Slice 1b retrieval result (2026-07-22)
 
@@ -75,6 +116,28 @@ prompts (which would void the blind-authoring guarantee) or widening labels to f
 retriever (which would tune the test to the system). Closing the gap is tracked as a
 follow-up: either a targeted blind keyword-specificity pass or a stronger retriever
 (embedding rerank over the lexical top-k).
+
+### Approaches ruled out (2026-07-25)
+
+Recorded so they are not retried from scratch.
+
+- **Naive adjacent-token bigram expansion** ("back up" -> "backup"): dropped recall to
+  89.1% through spurious joins (`upcontainer`, `backupjobs`).
+- **Structural parent expansion by name prefix** (when a specific tool matches, admit the
+  generic tool whose name is its prefix). This looked like the ideal fix, since 3 of the 4
+  misses are generic-parent-vs-specific-sibling and a name-prefix rule reads only the
+  registry, never the prompts. It dies on the corpus: across all 96 tools there are exactly
+  **two** name-prefix pairs, both under `proxmox_list_storage`
+  (`+_config`, `+_content`). The rule's entire footprint is the one parent tool that happens
+  to be the CD-7 miss. Shipping it would clear the gate while being indistinguishable in
+  effect from hand-fixing the failing prompt: overfitting in structural clothing. The
+  general-sounding form of a rule is not evidence that it generalizes; check its footprint
+  on the corpus first.
+- Note that CD-2, CD-3 and CD-6 are *not* prefix relationships at all
+  (`get_resource`/`get_vm_config`, `run_backup`/`list_backups`, `read_file`/guest tools).
+  They are semantic generic-vs-specific pairs, which is why an embedding rerank over the
+  lexical top-k remains the only candidate that could move them for reasons unrelated to
+  CD-7. It needs a decision on adding a model dependency to the request path.
 
 ## Integrity
 
