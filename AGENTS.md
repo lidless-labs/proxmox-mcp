@@ -10,7 +10,7 @@ It runs `npm run typecheck`, `npm test`, and `npm run build` in order, with test
 - `prepublishOnly` runs the same chain; the publish payload is only `dist`, `openclaw.plugin.json`, `README.md`, `LICENSE`.
 
 ## Project Shape
-- TypeScript MCP server for Proxmox VE (`@solomonneas/proxmox-mcp`): 42 tools across read, gated guest-read, safe-write, and destructive tiers, plus in-guest exec over SSH.
+- TypeScript MCP server for Proxmox VE (`@solomonneas/proxmox-mcp`): 96 tools across read, gated guest-read, safe-write, and destructive tiers, plus in-guest exec over SSH.
 - Entry points: `mcp-server.ts` (stdio MCP), `index.ts` (OpenClaw plugin). Both register tools through the explicit export list in `src/tools/index.ts`; that list is canonical.
 - One tool implementation per file under `src/tools/`. Shared plumbing: `src/proxmox-client.ts` (API token HTTP client), `src/ssh-executor.ts` (host `pct exec` for LXC, direct SSH for QEMU), `src/gates.ts` (write gates), `src/security.ts` (secret redaction), `src/config.ts` (env resolution).
 - Tests use the in-memory fake in `tests/fake-proxmox.ts`; per-tool tests live in `tests/tools/`.
