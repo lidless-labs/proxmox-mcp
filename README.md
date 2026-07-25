@@ -45,7 +45,7 @@ A real MCP client config. Drop this into Claude Desktop (`claude_desktop_config.
       "env": {
         "PROXMOX_URL": "https://192.0.2.10:8006",
         "PROXMOX_TOKEN_ID": "pve-admin@pam!api-token-1",
-        "PROXMOX_TOKEN_SECRET": "00000000-0000-0000-0000-000000000000",
+        "PROXMOX_TOKEN_SECRET": "REPLACE_WITH_TOKEN_SECRET",
         "PROXMOX_TLS_INSECURE": "false"
       }
     }
@@ -182,7 +182,7 @@ Set the three required credential env vars (scrub real hosts and IPs out of any 
 ```bash
 export PROXMOX_URL=https://192.0.2.10:8006
 export PROXMOX_TOKEN_ID=pve-admin@pam!api-token-1
-export PROXMOX_TOKEN_SECRET=00000000-0000-0000-0000-000000000000
+export PROXMOX_TOKEN_SECRET=REPLACE_WITH_TOKEN_SECRET
 
 # Optional: skip TLS cert validation for homelab self-signed certs.
 # Accepts true/1/yes (case-insensitive). Defaults to false.
@@ -207,12 +207,14 @@ Set the following env vars. All three credential vars are required.
 ```
 PROXMOX_URL=https://192.0.2.10:8006
 PROXMOX_TOKEN_ID=pve-admin@pam!api-token-1
-PROXMOX_TOKEN_SECRET=00000000-0000-0000-0000-000000000000
+PROXMOX_TOKEN_SECRET=REPLACE_WITH_TOKEN_SECRET
 
 # Optional: skip TLS cert validation (homelab self-signed certs).
 # Accepts true/1/yes (case-insensitive). Defaults to false.
 PROXMOX_TLS_INSECURE=false
 ```
+
+`PROXMOX_TOKEN_SECRET` is the UUID Proxmox shows exactly once when you create the API token; it cannot be read back afterwards. Every example here uses a literal `REPLACE_WITH_TOKEN_SECRET` placeholder rather than a UUID-shaped dummy, so copying a snippet into your own repo will not trip a secret scanner.
 
 Trailing slashes on `PROXMOX_URL` are stripped. The token secret is registered with the redactor on startup and masked from all log + error output.
 
@@ -290,7 +292,7 @@ Run `proxmoxctl help` for the full command list. `--json` emits raw JSON instead
       "env": {
         "PROXMOX_URL": "https://192.0.2.10:8006",
         "PROXMOX_TOKEN_ID": "pve-admin@pam!api-token-1",
-        "PROXMOX_TOKEN_SECRET": "00000000-0000-0000-0000-000000000000",
+        "PROXMOX_TOKEN_SECRET": "REPLACE_WITH_TOKEN_SECRET",
         "PROXMOX_TLS_INSECURE": "false"
       }
     }
@@ -337,7 +339,7 @@ args = ["-y", "@solomonneas/proxmox-mcp"]
 [mcp_servers.proxmox.env]
 PROXMOX_URL = "https://192.0.2.10:8006"
 PROXMOX_TOKEN_ID = "pve-admin@pam!api-token-1"
-PROXMOX_TOKEN_SECRET = "00000000-0000-0000-0000-000000000000"
+PROXMOX_TOKEN_SECRET = "REPLACE_WITH_TOKEN_SECRET"
 PROXMOX_TLS_INSECURE = "false"
 ```
 
