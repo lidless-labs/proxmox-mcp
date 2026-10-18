@@ -47,19 +47,7 @@ scan_with() {
   RUN --all-tracked "${pol[@]+"${pol[@]}"}" "${ALLOW_FROM[@]+"${ALLOW_FROM[@]}"}" || FAIL=1
   while read -r _lref lsha _rref rsha; do
     [[ -z "${lsha:-}" || "$lsha" == "$ZERO" ]] && continue   # branch deletion
-    if [[ "$rsha" == "$ZERO" ]]; then
-      # New remote branch: scan only commits no remote ref already has. Commits
-      # already pushed elsewhere are public, so rescanning them only blocks.
-      revs="$(git rev-list "$lsha" --not --remotes)"
-      if [[ -z "$revs" ]]; then
-        echo "pre-push: [history] $lsha introduces no unpublished commits"
-        continue
-      fi
-      echo "pre-push: [history] scanning introduced content in unpublished commits of $lsha"
-      printf '%s\n' "$revs" | RUN --history --revs-stdin "${pol[@]+"${pol[@]}"}" "${ALLOW_FROM[@]+"${ALLOW_FROM[@]}"}" || FAIL=1
-      continue
-    fi
-    range="$rsha..$lsha"
+    if [[ "$rsha" == "$ZERO" ]]; then range="$lsha"; else range="$rsha..$lsha"; fi
     echo "pre-push: [history] scanning introduced content in $range"
     RUN --history --range "$range" "${pol[@]+"${pol[@]}"}" "${ALLOW_FROM[@]+"${ALLOW_FROM[@]}"}" || FAIL=1
   done < <(printf '%s\n' "$STDIN_REFS")
