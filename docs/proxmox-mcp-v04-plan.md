@@ -68,22 +68,22 @@ Test pattern (from `tests/tools/start_resource.test.ts`): start `fake-proxmox`, 
 Run:
 
 ```bash
-cd /home/user/repos/proxmox-mcp && npm install --save ssh2 && npm install --save-dev @types/ssh2
+cd path/to/proxmox-mcp && npm install --save ssh2 && npm install --save-dev @types/ssh2
 ```
 
 Expected: `ssh2` added under `dependencies`, `@types/ssh2` under `devDependencies`, no install errors.
 
 - [ ] **Step 2: Verify install**
 
-Run: `cd /home/user/repos/proxmox-mcp && node -e "console.log(require('ssh2').Client)"`
+Run: `cd path/to/proxmox-mcp && node -e "console.log(require('ssh2').Client)"`
 
 Expected: prints `[class Client extends EventEmitter]` (or similar). No error.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git -C /home/user/repos/proxmox-mcp add package.json package-lock.json
-git -C /home/user/repos/proxmox-mcp commit -m "deps: add ssh2 + @types/ssh2 for v0.4 in-container exec"
+git -C path/to/proxmox-mcp add package.json package-lock.json
+git -C path/to/proxmox-mcp commit -m "deps: add ssh2 + @types/ssh2 for v0.4 in-container exec"
 ```
 
 ---
@@ -160,7 +160,7 @@ Append to `tests/config.test.ts` (before the closing `});` of the outer `describ
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /home/user/repos/proxmox-mcp && npx vitest run tests/config.test.ts`
+Run: `cd path/to/proxmox-mcp && npx vitest run tests/config.test.ts`
 
 Expected: 4 new tests fail with "Cannot read properties of undefined (reading 'host')" or similar (cfg.ssh is undefined).
 
@@ -237,21 +237,21 @@ export function resolveConfig(env: Record<string, string | undefined>): ProxmoxC
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /home/user/repos/proxmox-mcp && npx vitest run tests/config.test.ts`
+Run: `cd path/to/proxmox-mcp && npx vitest run tests/config.test.ts`
 
 Expected: all 10 tests in `resolveConfig` pass.
 
 - [ ] **Step 5: Run full suite to confirm no regressions**
 
-Run: `cd /home/user/repos/proxmox-mcp && npm test`
+Run: `cd path/to/proxmox-mcp && npm test`
 
 Expected: all tests pass (existing tests don't touch `cfg.ssh`).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /home/user/repos/proxmox-mcp add src/config.ts tests/config.test.ts
-git -C /home/user/repos/proxmox-mcp commit -m "feat(config): add ssh sub-config (host/port/user/key + vm fallthrough)"
+git -C path/to/proxmox-mcp add src/config.ts tests/config.test.ts
+git -C path/to/proxmox-mcp commit -m "feat(config): add ssh sub-config (host/port/user/key + vm fallthrough)"
 ```
 
 ---
@@ -419,7 +419,7 @@ describe("ssh-executor", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /home/user/repos/proxmox-mcp && npx vitest run tests/ssh-executor.test.ts`
+Run: `cd path/to/proxmox-mcp && npx vitest run tests/ssh-executor.test.ts`
 
 Expected: tests fail with "Cannot find module '../src/ssh-executor.ts'" (file doesn't exist yet).
 
@@ -574,21 +574,21 @@ export async function execViaDirectSsh(
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /home/user/repos/proxmox-mcp && npx vitest run tests/ssh-executor.test.ts`
+Run: `cd path/to/proxmox-mcp && npx vitest run tests/ssh-executor.test.ts`
 
 Expected: all 7 tests pass.
 
 - [ ] **Step 5: Run typecheck**
 
-Run: `cd /home/user/repos/proxmox-mcp && npm run typecheck`
+Run: `cd path/to/proxmox-mcp && npm run typecheck`
 
 Expected: no errors.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /home/user/repos/proxmox-mcp add src/ssh-executor.ts tests/ssh-executor.test.ts
-git -C /home/user/repos/proxmox-mcp commit -m "feat(ssh): add ssh-executor module (execInLxc + execViaDirectSsh)"
+git -C path/to/proxmox-mcp add src/ssh-executor.ts tests/ssh-executor.test.ts
+git -C path/to/proxmox-mcp commit -m "feat(ssh): add ssh-executor module (execInLxc + execViaDirectSsh)"
 ```
 
 ---
@@ -617,15 +617,15 @@ export type SshExecutorFactory = () => SshExecutor;
 
 - [ ] **Step 2: Run typecheck**
 
-Run: `cd /home/user/repos/proxmox-mcp && npm run typecheck`
+Run: `cd path/to/proxmox-mcp && npm run typecheck`
 
 Expected: no errors.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git -C /home/user/repos/proxmox-mcp add src/tools/_util.ts
-git -C /home/user/repos/proxmox-mcp commit -m "feat(tools): add SshExecutor + SshExecutorFactory types"
+git -C path/to/proxmox-mcp add src/tools/_util.ts
+git -C path/to/proxmox-mcp commit -m "feat(tools): add SshExecutor + SshExecutorFactory types"
 ```
 
 ---
@@ -859,7 +859,7 @@ describe("proxmox_exec", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /home/user/repos/proxmox-mcp && npx vitest run tests/tools/exec.test.ts`
+Run: `cd path/to/proxmox-mcp && npx vitest run tests/tools/exec.test.ts`
 
 Expected: "Cannot find module '../../src/tools/proxmox_exec.ts'".
 
@@ -988,21 +988,21 @@ export function createProxmoxExecTool(
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /home/user/repos/proxmox-mcp && npx vitest run tests/tools/exec.test.ts`
+Run: `cd path/to/proxmox-mcp && npx vitest run tests/tools/exec.test.ts`
 
 Expected: all 8 tests pass.
 
 - [ ] **Step 5: Run full suite for regressions**
 
-Run: `cd /home/user/repos/proxmox-mcp && npm test`
+Run: `cd path/to/proxmox-mcp && npm test`
 
 Expected: no regressions.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /home/user/repos/proxmox-mcp add src/tools/proxmox_exec.ts tests/tools/exec.test.ts
-git -C /home/user/repos/proxmox-mcp commit -m "feat(tools): proxmox_exec (tier-2 in-container command execution)"
+git -C path/to/proxmox-mcp add src/tools/proxmox_exec.ts tests/tools/exec.test.ts
+git -C path/to/proxmox-mcp commit -m "feat(tools): proxmox_exec (tier-2 in-container command execution)"
 ```
 
 ---
@@ -1127,7 +1127,7 @@ describe("proxmox_read_file", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /home/user/repos/proxmox-mcp && npx vitest run tests/tools/read_file.test.ts`
+Run: `cd path/to/proxmox-mcp && npx vitest run tests/tools/read_file.test.ts`
 
 Expected: "Cannot find module '../../src/tools/proxmox_read_file.ts'".
 
@@ -1241,15 +1241,15 @@ export function createProxmoxReadFileTool(
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /home/user/repos/proxmox-mcp && npx vitest run tests/tools/read_file.test.ts`
+Run: `cd path/to/proxmox-mcp && npx vitest run tests/tools/read_file.test.ts`
 
 Expected: all 4 tests pass.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git -C /home/user/repos/proxmox-mcp add src/tools/proxmox_read_file.ts tests/tools/read_file.test.ts
-git -C /home/user/repos/proxmox-mcp commit -m "feat(tools): proxmox_read_file (tier-1 read file from container/VM)"
+git -C path/to/proxmox-mcp add src/tools/proxmox_read_file.ts tests/tools/read_file.test.ts
+git -C path/to/proxmox-mcp commit -m "feat(tools): proxmox_read_file (tier-1 read file from container/VM)"
 ```
 
 ---
@@ -1400,7 +1400,7 @@ describe("proxmox_write_file", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /home/user/repos/proxmox-mcp && npx vitest run tests/tools/write_file.test.ts`
+Run: `cd path/to/proxmox-mcp && npx vitest run tests/tools/write_file.test.ts`
 
 Expected: "Cannot find module '../../src/tools/proxmox_write_file.ts'".
 
@@ -1533,15 +1533,15 @@ export function createProxmoxWriteFileTool(
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /home/user/repos/proxmox-mcp && npx vitest run tests/tools/write_file.test.ts`
+Run: `cd path/to/proxmox-mcp && npx vitest run tests/tools/write_file.test.ts`
 
 Expected: all 4 tests pass.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git -C /home/user/repos/proxmox-mcp add src/tools/proxmox_write_file.ts tests/tools/write_file.test.ts
-git -C /home/user/repos/proxmox-mcp commit -m "feat(tools): proxmox_write_file (tier-2 write file to container/VM)"
+git -C path/to/proxmox-mcp add src/tools/proxmox_write_file.ts tests/tools/write_file.test.ts
+git -C path/to/proxmox-mcp commit -m "feat(tools): proxmox_write_file (tier-2 write file to container/VM)"
 ```
 
 ---
@@ -1655,7 +1655,7 @@ describe("integration", () => {
 
 - [ ] **Step 2: Run integration tests to verify they fail**
 
-Run: `cd /home/user/repos/proxmox-mcp && npx vitest run tests/integration.test.ts`
+Run: `cd path/to/proxmox-mcp && npx vitest run tests/integration.test.ts`
 
 Expected: fails on missing `createProxmoxExecTool` / `createProxmoxReadFileTool` / `createProxmoxWriteFileTool` exports.
 
@@ -1757,27 +1757,27 @@ await server.connect(transport);
 
 - [ ] **Step 5: Run integration test to verify it passes**
 
-Run: `cd /home/user/repos/proxmox-mcp && npx vitest run tests/integration.test.ts`
+Run: `cd path/to/proxmox-mcp && npx vitest run tests/integration.test.ts`
 
 Expected: both tests pass.
 
 - [ ] **Step 6: Run full suite**
 
-Run: `cd /home/user/repos/proxmox-mcp && npm test`
+Run: `cd path/to/proxmox-mcp && npm test`
 
 Expected: all tests pass (~85 total).
 
 - [ ] **Step 7: Run typecheck**
 
-Run: `cd /home/user/repos/proxmox-mcp && npm run typecheck`
+Run: `cd path/to/proxmox-mcp && npm run typecheck`
 
 Expected: no errors.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git -C /home/user/repos/proxmox-mcp add src/tools/index.ts mcp-server.ts tests/integration.test.ts
-git -C /home/user/repos/proxmox-mcp commit -m "feat(release): 0.4.0 wire 3 new in-container exec tools"
+git -C path/to/proxmox-mcp add src/tools/index.ts mcp-server.ts tests/integration.test.ts
+git -C path/to/proxmox-mcp commit -m "feat(release): 0.4.0 wire 3 new in-container exec tools"
 ```
 
 ---
@@ -1789,7 +1789,7 @@ git -C /home/user/repos/proxmox-mcp commit -m "feat(release): 0.4.0 wire 3 new i
 
 - [ ] **Step 1: Read the current README**
 
-Read: `cat /home/user/repos/proxmox-mcp/README.md` (use the `Read` tool).
+Read: `cat path/to/proxmox-mcp/README.md` (use the `Read` tool).
 
 - [ ] **Step 2: Add new env vars section and tool descriptions**
 
@@ -1831,8 +1831,8 @@ Locate the tools table and add three rows at the end:
 - [ ] **Step 3: Commit**
 
 ```bash
-git -C /home/user/repos/proxmox-mcp add README.md
-git -C /home/user/repos/proxmox-mcp commit -m "docs(readme): document v0.4 in-container exec tools + SSH env vars"
+git -C path/to/proxmox-mcp add README.md
+git -C path/to/proxmox-mcp commit -m "docs(readme): document v0.4 in-container exec tools + SSH env vars"
 ```
 
 ---
@@ -1848,33 +1848,33 @@ Edit `package.json` and change `"version": "0.3.0"` to `"version": "0.4.0"`.
 
 - [ ] **Step 2: Run typecheck**
 
-Run: `cd /home/user/repos/proxmox-mcp && npm run typecheck`
+Run: `cd path/to/proxmox-mcp && npm run typecheck`
 
 Expected: no errors.
 
 - [ ] **Step 3: Run full test suite**
 
-Run: `cd /home/user/repos/proxmox-mcp && npm test`
+Run: `cd path/to/proxmox-mcp && npm test`
 
 Expected: ~85 tests pass, no failures. If the count is off, investigate before declaring done.
 
 - [ ] **Step 4: Build to confirm tsup output**
 
-Run: `cd /home/user/repos/proxmox-mcp && npm run build`
+Run: `cd path/to/proxmox-mcp && npm run build`
 
 Expected: no errors. `dist/` updated.
 
 - [ ] **Step 5: Verify the mcp-server bundle imports ssh2 cleanly**
 
-Run: `cd /home/user/repos/proxmox-mcp && node -e "import('./dist/mcp-server.js').catch(e => { if (/PROXMOX_URL/.test(e.message)) process.exit(0); console.error(e); process.exit(1); })"`
+Run: `cd path/to/proxmox-mcp && node -e "import('./dist/mcp-server.js').catch(e => { if (/PROXMOX_URL/.test(e.message)) process.exit(0); console.error(e); process.exit(1); })"`
 
 Expected: exits 0 (the import fails on missing config, which is the expected check - we just want to confirm no syntax or import error).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /home/user/repos/proxmox-mcp add package.json
-git -C /home/user/repos/proxmox-mcp commit -m "chore(release): 0.4.0"
+git -C path/to/proxmox-mcp add package.json
+git -C path/to/proxmox-mcp commit -m "chore(release): 0.4.0"
 ```
 
 ---
