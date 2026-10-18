@@ -3,7 +3,8 @@ import { pathToFileURL } from "node:url";
 import { ProxmoxClient } from "./src/proxmox-client.ts";
 import { resolveConfig } from "./src/config.ts";
 import { redact } from "./src/security.ts";
-import { startServer } from "./mcp-server.ts";
+import { startServer } from "./src/server.ts";
+import { startHttpServer } from "./src/http.ts";
 import * as proxmoxTools from "./src/tools/index.ts";
 import pkg from "./package.json" with { type: "json" };
 
@@ -108,7 +109,7 @@ Audit / tasks:
   task log <upid>              Log of a task [--limit <n>] [--start <n>]
 
 Server:
-  mcp                          Start the MCP server over stdio
+  mcp [--http]                 Start MCP over stdio, or authenticated HTTP
   help                         Show this help
 
 Global options:
@@ -167,6 +168,7 @@ export type Parsed =
   | { kind: "help" }
   | { kind: "version" }
   | { kind: "mcp" }
+  | { kind: "mcp-http" }
   | { kind: "run"; command: string; toolArgs: Record<string, unknown>; json: boolean; health: boolean };
 
 export function parseArgs(argv: string[]): Parsed {
@@ -195,7 +197,10 @@ export function parseArgs(argv: string[]): Parsed {
 
   const first = tokens[0];
   if (!first || first === "help") return { kind: "help" };
-  if (first === "mcp") return { kind: "mcp" };
+  if (first === "mcp") {
+    if (flags.http !== undefined && flags.http !== true) throw new UsageError("--http does not take a value");
+    return { kind: flags.http === true ? "mcp-http" : "mcp" };
+  }
 
   let command: string;
   let positionals: string[];
@@ -277,6 +282,10 @@ export async function run(argv: string[], deps: CliDeps): Promise<number> {
   }
   if (parsed.kind === "version") {
     deps.out(pkg.version);
+    return 0;
+  }
+  if (parsed.kind === "mcp-http") {
+    await startHttpServer();
     return 0;
   }
   if (parsed.kind === "mcp") {

@@ -1,4 +1,4 @@
-import { startServer } from "./mcp-server.ts";
+import { startServer } from "./src/server.ts";
 
 startServer().catch((error: unknown) => {
   console.error(`proxmox-mcp fatal: ${error instanceof Error ? error.message : String(error)}`);

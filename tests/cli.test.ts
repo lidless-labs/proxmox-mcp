@@ -38,6 +38,7 @@ describe("parseArgs", () => {
     expect(parseArgs(["help"])).toEqual({ kind: "help" });
     expect(parseArgs(["--version"])).toEqual({ kind: "version" });
     expect(parseArgs(["mcp"])).toEqual({ kind: "mcp" });
+    expect(parseArgs(["mcp", "--http"])).toEqual({ kind: "mcp-http" });
   });
 
   it("rejects bad input with UsageError", () => {

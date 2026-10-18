@@ -300,6 +300,111 @@ Run `proxmoxctl help` for the full command list. `--json` emits raw JSON instead
 
 `proxmoxctl mcp` (or the back-compat `proxmox-mcp` bin) starts the stdio MCP server. If a launcher referenced the file path `dist/mcp-server.js` directly, it keeps working; new launchers can point at `dist/mcp-bin.js` (or `dist/cli.js mcp`). Launchers that use the `proxmox-mcp` bin name need no change.
 
+### Shared HTTP mode
+
+Run one persistent process for multiple MCP clients:
+
+```sh
+node dist/cli.js mcp --http
+# Or: proxmoxctl mcp --http
+```
+
+Set the usual `PROXMOX_URL`, `PROXMOX_TOKEN_ID`, and `PROXMOX_TOKEN_SECRET`
+on the server, plus an independent `PROXMOX_MCP_HTTP_TOKEN`. Generate a random
+HTTP token, for example with `openssl rand -hex 32`. Startup refuses a missing or
+blank token, or one equal to the Proxmox token ID, token secret, complete API
+authorization value, or URL credentials. Tokens are compared using SHA-256 and
+constant-time comparison. Keep the token private: every client with it shares
+the server's Proxmox privileges and process-level destructive-operation flag.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PROXMOX_MCP_HTTP_TOKEN` | Required | Bearer credential, separate from upstream credentials |
+| `PROXMOX_MCP_HTTP_HOST` | IPv4 loopback | Listener bind address |
+| `PROXMOX_MCP_HTTP_PORT` | `3100` | TCP port (`0` selects a free port) |
+
+The resolved address is printed to stderr on startup. `/mcp` supports Streamable
+HTTP POST, GET, and DELETE with bearer authentication on every request.
+`GET /healthz` requires no token and returns only `{"status":"ok"}`.
+Requests must use the bound host or a loopback alias in `Host`. A supplied
+`Origin` must be an HTTP or HTTPS loopback origin. Request bodies are limited to
+1 MiB. The listener accepts at most 128 sessions, reaps sessions idle for 30 minutes
+(on a minute timer), and closes transports and the listener on SIGTERM or SIGINT.
+Active tool requests are excluded from idle expiry. An idle SSE channel does not
+keep a session alive. Clients must initialize again after expiry or a restart.
+
+Each initialized MCP session gets its own server and deferred-tool visible set.
+Confirmation gates have no pending approvals: `confirm`, `destructive`, and the
+environment gate are checked on every tool invocation. One session's confirmation
+cannot authorize another call. The secret-redaction registry is process-wide and
+only adds masking, never authorization. Session IDs route connection state and
+are not separate user identities. All clients using the shared bearer token are
+in the same trust boundary. HTTP mode preserves the existing stdio defaults.
+
+Keep the default loopback binding for local clients. A non-loopback listener
+requires a trusted TLS proxy or tunnel and appropriate network access controls.
+This transport does not provide TLS, OAuth, browser CORS access, or per-client
+Proxmox accounts. Preserve the allowed Host header through a proxy. A wildcard
+bind does not allow arbitrary Host headers. Use a specific bind address or host
+name for remote clients.
+
+#### Claude Code
+
+Add this entry under `mcpServers` in `~/.claude.json`. Replace the token placeholder
+with the HTTP token. Restrict access to the config file.
+
+```json
+{
+  "mcpServers": {
+    "proxmox": {
+      "type": "http",
+      "url": "http://localhost:3100/mcp",
+      "headers": {
+        "Authorization": "Bearer <HTTP_TOKEN>"
+      }
+    }
+  }
+}
+```
+
+The `type` and header syntax follow the
+[Claude Code MCP configuration](https://code.claude.com/docs/en/mcp).
+
+#### Codex
+
+Add to `~/.codex/config.toml`, and export `PROXMOX_MCP_HTTP_TOKEN` in the environment
+that launches Codex. Its value must match the server's token, without the
+`Bearer ` prefix. The client needs no upstream Proxmox credentials.
+
+```toml
+[mcp_servers.proxmox]
+url = "http://localhost:3100/mcp"
+bearer_token_env_var = "PROXMOX_MCP_HTTP_TOKEN"
+```
+
+These fields follow the
+[Codex Streamable HTTP configuration](https://developers.openai.com/codex/mcp/).
+
+#### systemd user service
+
+An example unit is at
+[`docs/systemd/proxmox-mcp-http.service`](docs/systemd/proxmox-mcp-http.service).
+Adjust its generic installation paths, build the project there, and place the
+server environment in `%h/.config/proxmox-mcp/http.env` with mode `0600`:
+
+```sh
+PROXMOX_URL=https://proxmox.example.com:8006
+PROXMOX_TOKEN_ID=operator@pve!mcp
+PROXMOX_TOKEN_SECRET=REPLACE_WITH_UPSTREAM_SECRET
+PROXMOX_MCP_HTTP_TOKEN=REPLACE_WITH_INDEPENDENT_RANDOM_TOKEN
+PROXMOX_MCP_HTTP_PORT=3100
+```
+
+The unit reads this file with `EnvironmentFile`. Add SSH settings there if the
+chosen tools require them. Leave `PROXMOX_ENABLE_DESTRUCTIVE` unset unless the
+service should permit destructive calls. Installing or starting the example is
+an operator action, separate from building the server.
+
 ## Setup
 
 ### Claude Desktop
@@ -492,7 +597,7 @@ Audit or clean leftover smoke resources:
 ## What proxmox-mcp is not
 
 - It is **not a tool for blind automation of destructive operations.** The destructive tier exists for deliberate, supervised work (smoke-test cycles, intentional teardown), not for unattended agents. The `PROXMOX_ENABLE_DESTRUCTIVE=1` flag is a coarse "I am actively doing this right now" toggle; leave it unset day to day.
-- It is **not a Proxmox cluster manager or orchestrator.** It does not schedule, it does not run in the background, and it holds no state of its own. It translates MCP tool calls into Proxmox API calls and SSH commands, and that is all.
+- It is **not a Proxmox cluster manager or orchestrator.** It does not schedule cluster work. HTTP mode keeps MCP session state in memory. It translates MCP tool calls into Proxmox API calls and SSH commands, and that is all.
 - It is **not a substitute for least-privilege tokens.** The write gate is a guardrail against a misbehaving model, not a substitute for a properly scoped Proxmox API token. Start read-only and grade up. See [SECURITY.md](SECURITY.md).
 - It is **not stable yet.** It is WIP, pre-1.0, and the tool surface can change between minor versions.
 
