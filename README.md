@@ -319,8 +319,8 @@ the server's Proxmox privileges and process-level destructive-operation flag.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `PROXMOX_MCP_HTTP_TOKEN` | Required | Bearer credential, separate from upstream credentials |
-| `PROXMOX_MCP_HTTP_HOST` | IPv4 loopback | Listener bind address |
+| `PROXMOX_MCP_HTTP_TOKEN` | Required | Bearer credential, at least 32 characters, separate from upstream credentials |
+| `PROXMOX_MCP_HTTP_HOST` | IPv4 loopback | Listener bind address. Wildcards (`0.0.0.0`, `::`, `[::]`) are refused |
 | `PROXMOX_MCP_HTTP_PORT` | `3100` | TCP port (`0` selects a free port) |
 
 The resolved address is printed to stderr on startup. `/mcp` supports Streamable

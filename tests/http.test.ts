@@ -114,6 +114,22 @@ describe("authenticated Streamable HTTP", () => {
     await expect(createHttpServer()).rejects.toThrow(/PROXMOX_MCP_HTTP_TOKEN/);
   });
 
+  it("refuses a token shorter than 32 characters", async () => {
+    configure({ PROXMOX_MCP_HTTP_TOKEN: "a".repeat(31) });
+    await expect(createHttpServer()).rejects.toThrow(/at least 32 characters/);
+  });
+
+  it.each(["0.0.0.0", "::", "[::]"])("refuses wildcard bind host %s", async (host) => {
+    configure({ PROXMOX_MCP_HTTP_HOST: host });
+    await expect(createHttpServer()).rejects.toThrow(/not a wildcard/);
+  });
+
+  it("accepts a token with surrounding whitespace from a secrets file", async () => {
+    const url = await start({ PROXMOX_MCP_HTTP_TOKEN: `  ${TOKEN}\n` });
+    const { client } = await connect(url);
+    expect((await client.listTools()).tools).toHaveLength(96);
+  });
+
   it.each(["-1", "65536", "abc", "3000suffix", "1.5"])("refuses invalid port %s", async (port) => {
     configure({ PROXMOX_MCP_HTTP_PORT: port });
     await expect(createHttpServer()).rejects.toThrow(/PROXMOX_MCP_HTTP_PORT/);

@@ -15,7 +15,7 @@ it("the bundled HTTP CLI does not also serve stdio and exits cleanly on SIGTERM"
     child = spawn(process.execPath, [join(outDir, "cli.js"), "mcp", "--http"], {
       env: { ...process.env, PROXMOX_URL: "https://proxmox.example.com:8006",
         PROXMOX_TOKEN_ID: "test@pve!http", PROXMOX_TOKEN_SECRET: "dummy-upstream-secret",
-        PROXMOX_MCP_HTTP_TOKEN: "independent-http-test-token", PROXMOX_MCP_HTTP_PORT: "0",
+        PROXMOX_MCP_HTTP_TOKEN: "independent-http-test-token-32-characters", PROXMOX_MCP_HTTP_PORT: "0",
         PROXMOX_MCP_HTTP_HOST: "localhost" },
       stdio: ["pipe", "pipe", "pipe"],
     });
