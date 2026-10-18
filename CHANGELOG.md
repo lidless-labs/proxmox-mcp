@@ -8,6 +8,8 @@ All notable changes to proxmox-mcp are documented here. The format is based on [
 
 ### Added
 
+- Authenticated Streamable HTTP mode via `proxmoxctl mcp --http`, with per-session deferred tool state, loopback binding, request guards, and a systemd user-unit example. Existing stdio entry points remain available.
+
 - **Deferred tool loading** (experimental, opt-in via `PROXMOX_DEFERRED_TOOLS=1`): the server starts with a single `proxmox_search_tools` tool instead of all 96. An agent describes its task, gets matching tool descriptors back, and those tools are added to that connection's tool list, followed by `notifications/tools/list_changed` so the client re-reads it and calls the chosen tool with its own typed schema. Measured on a live connection: visible `tools/list` payload drops from 68,495 bytes to 1,400 (98% reduction). Verified end to end on Claude Code 2.1.219, which re-lists 2ms after the notification. Default behavior is unchanged when the flag is unset: full static tool list, no search tool, no `listChanged` capability advertised.
   - Safety is unchanged by design. Tool visibility is a token optimization, not a gate: destructive tools are searchable, search results carry each tool's tier and the gate arguments it requires, and a tool reached through search still needs `confirm` + `destructive` + `PROXMOX_ENABLE_DESTRUCTIVE`. Calling a registered tool that search has not surfaced is still honored, since refusing would add a second, weaker enforcement surface rather than any safety.
 

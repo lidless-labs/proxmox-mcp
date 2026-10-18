@@ -1,0 +1,20 @@
+[Unit]
+Description=Proxmox MCP HTTP server
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/proxmox-mcp
+ExecStart=/usr/bin/node /opt/proxmox-mcp/dist/cli.js mcp --http
+EnvironmentFile=%h/.config/proxmox-mcp/http.env
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+
+[Install]
+WantedBy=default.target
