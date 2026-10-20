@@ -177,7 +177,7 @@ if (toolMap.has(SEARCH_TOOL_NAME)) {
 }
 
 const server = new Server(
-  { name: "proxmox-mcp", version: "0.11.0" },
+  { name: "proxmox-mcp", version: "0.12.0" },
   { capabilities: { tools: deferred ? { listChanged: true } : {} } },
 );
 

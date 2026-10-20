@@ -2,11 +2,19 @@
   "schemaVersion": 1,
   "id": "proxmox",
   "name": "Proxmox",
-  "version": "0.5.0",
+  "version": "0.12.0",
   "description": "Proxmox VE read/write tools: status, containers, VMs, backups, lifecycle, snapshots.",
   "entry": "./dist/index.js",
-  "activation": { "onStartup": true },
-  "compat": { "openclaw": ">=2026.4.22" },
+  "activation": {
+    "onStartup": true
+  },
+  "compat": {
+    "openclaw": ">=2026.4.22"
+  },
   "permissions": [],
-  "configSchema": { "type": "object", "properties": {}, "additionalProperties": false }
+  "configSchema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  }
 }
