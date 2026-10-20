@@ -6,6 +6,8 @@ All notable changes to proxmox-mcp are documented here. The format is based on [
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-19
+
 ### Added
 
 - Authenticated Streamable HTTP mode via `proxmoxctl mcp --http`, with per-session deferred tool state, loopback binding, request guards, and a systemd user-unit example. Existing stdio entry points remain available.
@@ -14,6 +16,10 @@ All notable changes to proxmox-mcp are documented here. The format is based on [
   - Safety is unchanged by design. Tool visibility is a token optimization, not a gate: destructive tools are searchable, search results carry each tool's tier and the gate arguments it requires, and a tool reached through search still needs `confirm` + `destructive` + `PROXMOX_ENABLE_DESTRUCTIVE`. Calling a registered tool that search has not surfaced is still honored, since refusing would add a second, weaker enforcement surface rather than any safety.
 
 ### Fixed
+
+- OpenClaw plugin entry now points at the compiled `./dist/index.js`. The previous `./index.ts` entry was not in the published package, so OpenClaw and ClawHub could not load the plugin from npm.
+- The npm publish workflow and package metadata from the v0.5.1 release line are now on the default branch, and the publish job audits runtime dependencies only (`npm audit --omit=dev`).
+- Refreshed the lockfile with `npm audit fix`; runtime dependencies audit clean.
 
 - **Short secrets no longer shred redacted output.** `registerSecret()` replaced every registered secret as a bare substring regardless of length, so a one-character `PROXMOX_TOKEN_SECRET` turned a normal gate error into `proxmox_REDACTEDnapREDACTEDhot_reREDACTEDource iREDACTED a write operation`, hiding the message exactly when it mattered. Secrets shorter than 8 characters are now redacted only where they stand alone (delimited by non-alphanumerics or the string edges), and a short secret no longer causes every base64 blob in the output to be redacted wholesale. Short secrets remain registered and redacted, because `registerSecret()` also takes user-supplied guest credentials (`cipassword`, container `password`) that are legitimately short. A one-time stderr warning fires when a registered secret is suspiciously short, so a truncated credential is visible instead of silent.
 
