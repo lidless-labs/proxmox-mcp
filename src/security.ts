@@ -38,9 +38,12 @@ export function registerSecret(s: string): void {
 
 // Results are serialized to JSON before they are masked, so a secret containing a quote,
 // backslash or control character appears in its escaped form. Mask both forms.
+// The escaped form goes first: for a secret that starts with a quote or backslash the raw
+// form is a suffix of the escaped one, and masking it first would strand the escape
+// character in front of REDACTED and break the JSON.
 function secretForms(secret: string): string[] {
   const escaped = JSON.stringify(secret).slice(1, -1);
-  return escaped === secret ? [secret] : [secret, escaped];
+  return escaped === secret ? [secret] : [escaped, secret];
 }
 
 function maskString(s: string): string {

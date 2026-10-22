@@ -75,6 +75,15 @@ describe("finalizeToolResult masks secrets that JSON escaping changed", () => {
     expect(out).toContain("REDACTED");
   });
 
+  it("keeps the result valid JSON when the secret starts with a quote or backslash", () => {
+    for (const secret of ['"leading-quote-12345', "\\leading-slash-12345"]) {
+      registerSecret(secret);
+      const out = finalizeToolResult(text(JSON.stringify({ stdout: `v=${secret}` })), 4096).content[0].text;
+      expect(() => JSON.parse(out), out).not.toThrow();
+      expect(out).not.toContain("leading-");
+    }
+  });
+
   it("still masks the raw form", () => {
     registerSecret("example-secret-value");
     expect(finalizeToolResult(text("x example-secret-value y"), 4096).content[0].text).toBe("x REDACTED y");
