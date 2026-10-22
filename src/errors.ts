@@ -2,6 +2,7 @@ import { WriteGateError } from "./gates.ts";
 import { ProxmoxClientError, ProxmoxUnreachableError } from "./proxmox-client.ts";
 import { SshExecError } from "./ssh-executor.ts";
 import { ToolInputError } from "./tools/_util.ts";
+import { redact } from "./security.ts";
 
 export interface ToolErrorPayload {
   error: string;
@@ -10,7 +11,23 @@ export interface ToolErrorPayload {
   status?: number;
 }
 
+// Upstream error bodies are not under our control (a proxy can answer with a full HTML
+// page), so the text handed back to the model is bounded.
+export const MAX_ERROR_MESSAGE_CHARS = 2_000;
+
+// Secrets are masked before the cut so a boundary cannot leave a fragment of one behind.
+export function boundErrorMessage(raw: string): string {
+  const message = redact(raw) as string;
+  if (message.length <= MAX_ERROR_MESSAGE_CHARS) return message;
+  return `${message.slice(0, MAX_ERROR_MESSAGE_CHARS)}... [truncated ${message.length - MAX_ERROR_MESSAGE_CHARS} chars]`;
+}
+
 export function classifyToolError(error: unknown): ToolErrorPayload {
+  const payload = classifyUnbounded(error);
+  return { ...payload, error: boundErrorMessage(payload.error) };
+}
+
+function classifyUnbounded(error: unknown): ToolErrorPayload {
   const err = error instanceof Error ? error : new Error(String(error));
   if (err instanceof ToolInputError) {
     return { error: err.message, code: "TOOL_INPUT_INVALID", name: err.name };

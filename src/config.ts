@@ -35,6 +35,28 @@ function hostnameFromUrl(url: string): string {
   }
 }
 
+// The URL may carry credentials, so the message never repeats it.
+function assertHttpUrl(url: string): void {
+  let protocol: string;
+  try {
+    protocol = new URL(url).protocol;
+  } catch {
+    throw new ConfigError("PROXMOX_URL must be an absolute http(s) URL");
+  }
+  if (protocol !== "https:" && protocol !== "http:") {
+    throw new ConfigError("PROXMOX_URL must use the http or https scheme");
+  }
+}
+
+function parsePort(value: string | undefined, name: string, fallback: number): number {
+  if (value === undefined || value === "") return fallback;
+  const port = Number(value);
+  if (!/^\d+$/.test(value) || port < 1 || port > 65535) {
+    throw new ConfigError(`${name} must be an integer from 1 to 65535`);
+  }
+  return port;
+}
+
 export function resolveConfig(env: Record<string, string | undefined>): ProxmoxConfig {
   const url = env.PROXMOX_URL;
   const tokenId = env.PROXMOX_TOKEN_ID;
@@ -43,8 +65,9 @@ export function resolveConfig(env: Record<string, string | undefined>): ProxmoxC
   if (!tokenId) throw new ConfigError("PROXMOX_TOKEN_ID is required");
   if (!tokenSecret) throw new ConfigError("PROXMOX_TOKEN_SECRET is required");
   const trimmedUrl = url.replace(/\/+$/, "");
+  assertHttpUrl(trimmedUrl);
   const sshHost = env.PROXMOX_SSH_HOST ?? hostnameFromUrl(trimmedUrl);
-  const sshPort = env.PROXMOX_SSH_PORT ? parseInt(env.PROXMOX_SSH_PORT, 10) : 22;
+  const sshPort = parsePort(env.PROXMOX_SSH_PORT, "PROXMOX_SSH_PORT", 22);
   const sshUser = env.PROXMOX_SSH_USER ?? "root";
   const sshKey = env.PROXMOX_SSH_KEY ?? "~/.ssh/id_ed25519";
   return {

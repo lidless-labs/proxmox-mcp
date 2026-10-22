@@ -8,7 +8,8 @@ import { registerSecret, redact } from "./security.ts";
 import type { SshExecutor } from "./tools/_util.ts";
 import * as toolFactories from "./tools/index.ts";
 import { classifyToolError } from "./errors.ts";
-import { TOOL_TIERS, annotationsForTier, tierForTool } from "./registry.ts";
+import { finalizeToolResult } from "./output.ts";
+import { TOOL_TIERS, annotationsForTool } from "./registry.ts";
 import { buildSearchIndex, TOOL_SEARCH_META } from "./search.ts";
 import {
   createDeferredSession,
@@ -185,7 +186,7 @@ const descriptorFor = (t: (typeof tools)[number]) => ({
   name: t.name,
   description: t.description,
   inputSchema: t.parameters,
-  annotations: annotationsForTier(tierForTool(t.name)),
+  annotations: annotationsForTool(t.name),
 });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -240,7 +241,9 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   // used. Visibility is a token optimization; the executor's gates are the boundary.
   if (deferred && session !== null) session.load([t.name]);
   try {
-    return await t.execute(req.params.name, (req.params.arguments ?? {}) as Record<string, unknown>);
+    return finalizeToolResult(
+      await t.execute(req.params.name, (req.params.arguments ?? {}) as Record<string, unknown>),
+    );
   } catch (e) {
     const payload = redact(classifyToolError(e));
     return { content: [{ type: "text", text: JSON.stringify(payload) }], isError: true };

@@ -19,6 +19,8 @@ export type ToolTier = "read" | "safe-write" | "destructive";
 export interface ToolAnnotations {
   readOnlyHint?: boolean;
   destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint?: boolean;
 }
 
 // Access tier per registered tool, keyed by the tool's MCP name. Derived from the
@@ -128,7 +130,7 @@ export const TOOL_TIERS: Record<string, ToolTier> = {
 };
 
 // MCP annotations projected from the access tier. Kept as a pure function of the
-// tier so annotations can never disagree with it.
+// tier so the baseline can never disagree with it.
 export function annotationsForTier(tier: ToolTier): ToolAnnotations {
   switch (tier) {
     case "read":
@@ -138,6 +140,87 @@ export function annotationsForTier(tier: ToolTier): ToolAnnotations {
     case "destructive":
       return { readOnlyHint: false, destructiveHint: true };
   }
+}
+
+// The access tier says which gate arguments a call must carry. It does not say how
+// disruptive the call is: a safe-write tool can still run a command in a guest, stop a
+// workload, revoke a credential or change permissions. Clients that ask a person before
+// running a tool key on destructiveHint being exactly true, so the tools below carry the
+// hint while keeping the gate they enforce. Moving them to the destructive tier instead
+// would change the gate arguments every caller has to send.
+export const DESTRUCTIVE_HINT_TOOLS: ReadonlySet<string> = new Set([
+  "proxmox_cancel_task",
+  "proxmox_convert_to_template",
+  "proxmox_create_token",
+  "proxmox_delete_backup_job",
+  "proxmox_delete_firewall_rule",
+  "proxmox_delete_ha_resource",
+  "proxmox_delete_pool",
+  "proxmox_delete_replication",
+  "proxmox_delete_token",
+  "proxmox_download_url",
+  "proxmox_exec",
+  "proxmox_migrate_resource",
+  "proxmox_move_disk",
+  "proxmox_reboot_resource",
+  "proxmox_reset_resource",
+  "proxmox_resize_disk",
+  "proxmox_service_restart",
+  "proxmox_service_stop",
+  "proxmox_set_acl",
+  "proxmox_set_firewall_enabled",
+  "proxmox_stop_resource",
+  "proxmox_suspend_resource",
+  "proxmox_update_container_config",
+  "proxmox_update_pool",
+  "proxmox_update_vm_config",
+  "proxmox_write_file",
+]);
+
+// Guest reads sit behind confirm:true because they reach into a guest over SSH, but they
+// change nothing, so they are reported read-only.
+export const READ_ONLY_HINT_TOOLS: ReadonlySet<string> = new Set([
+  "proxmox_list_directory",
+  "proxmox_read_file",
+  "proxmox_service_status",
+  "proxmox_stat_path",
+]);
+
+// Repeating the call with the same arguments has no further effect.
+export const IDEMPOTENT_HINT_TOOLS: ReadonlySet<string> = new Set([
+  "proxmox_delete_backup_job",
+  "proxmox_delete_ha_resource",
+  "proxmox_delete_pool",
+  "proxmox_delete_replication",
+  "proxmox_delete_token",
+  "proxmox_resume_resource",
+  "proxmox_service_start",
+  "proxmox_service_stop",
+  "proxmox_set_acl",
+  "proxmox_set_firewall_enabled",
+  "proxmox_start_resource",
+  "proxmox_stop_resource",
+  "proxmox_suspend_resource",
+]);
+
+// The tool reaches a host outside the Proxmox cluster.
+export const OPEN_WORLD_HINT_TOOLS: ReadonlySet<string> = new Set(["proxmox_download_url"]);
+
+// Annotations reported in tools/list for a registered tool: the tier baseline plus the
+// hint sets above. A hint set can only raise the warning level (destructive) or mark a
+// confirm-gated guest read as read-only; it never changes the tier or the gate.
+export function annotationsForTool(name: string): ToolAnnotations {
+  const annotations = annotationsForTier(tierForTool(name));
+  if (annotations.readOnlyHint !== true && DESTRUCTIVE_HINT_TOOLS.has(name)) {
+    annotations.destructiveHint = true;
+  }
+  if (READ_ONLY_HINT_TOOLS.has(name)) {
+    return { readOnlyHint: true };
+  }
+  if (annotations.readOnlyHint === true) return annotations;
+  if (IDEMPOTENT_HINT_TOOLS.has(name)) annotations.idempotentHint = true;
+  if (OPEN_WORLD_HINT_TOOLS.has(name)) annotations.openWorldHint = true;
+  return annotations;
 }
 
 // Look up the tier for a registered tool. Throws when the name is absent so a
