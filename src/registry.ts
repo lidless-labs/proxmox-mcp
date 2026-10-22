@@ -203,8 +203,9 @@ export const IDEMPOTENT_HINT_TOOLS: ReadonlySet<string> = new Set([
   "proxmox_suspend_resource",
 ]);
 
-// The tool reaches a host outside the Proxmox cluster.
-export const OPEN_WORLD_HINT_TOOLS: ReadonlySet<string> = new Set(["proxmox_download_url"]);
+// The tool can reach a host outside the Proxmox cluster: download_url fetches from one, and
+// exec runs an unrestricted shell command that can contact any host.
+export const OPEN_WORLD_HINT_TOOLS: ReadonlySet<string> = new Set(["proxmox_download_url", "proxmox_exec"]);
 
 // Annotations reported in tools/list for a registered tool: the tier baseline plus the
 // hint sets above. A hint set can only raise the warning level (destructive) or mark a

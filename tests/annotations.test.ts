@@ -74,9 +74,11 @@ describe("tool annotations", () => {
     }
   });
 
-  it("states openWorldHint for every tool, true only for download_url", () => {
+  it("states openWorldHint for every tool, true only for download_url and exec", () => {
     for (const name of Object.keys(TOOL_TIERS)) {
-      expect(annotationsForTool(name).openWorldHint, name).toBe(name === "proxmox_download_url");
+      expect(annotationsForTool(name).openWorldHint, name).toBe(
+        name === "proxmox_download_url" || name === "proxmox_exec",
+      );
     }
   });
 

@@ -85,6 +85,24 @@ describe("finalizeToolResult masks secrets that JSON escaping changed", () => {
     }
   });
 
+  it("does not let a raw secret match JSON syntax such as a key", () => {
+    registerSecret('"vmid');
+    const original = JSON.stringify({ vmid: 105, status: "ok" }, null, 2);
+    const out = finalizeToolResult(text(original), 4096).content[0].text;
+    expect(out).toBe(original);
+    expect(JSON.parse(out)).toEqual({ vmid: 105, status: "ok" });
+  });
+
+  it("masks a secret inside a string value and keeps the layout", () => {
+    registerSecret("example-secret-value");
+    const out = finalizeToolResult(
+      text(JSON.stringify({ stdout: "token example-secret-value end", n: 1 }, null, 2)),
+      4096,
+    ).content[0].text;
+    expect(JSON.parse(out)).toEqual({ stdout: "token REDACTED end", n: 1 });
+    expect(out).toContain('\n  "stdout"');
+  });
+
   it("still masks the raw form", () => {
     registerSecret("example-secret-value");
     expect(finalizeToolResult(text("x example-secret-value y"), 4096).content[0].text).toBe("x REDACTED y");

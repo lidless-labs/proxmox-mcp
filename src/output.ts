@@ -53,6 +53,23 @@ interface TextContentLike {
   [key: string]: unknown;
 }
 
+// Masks registered secrets in one text block. Tool output is JSON, and scanning the
+// serialized text for a raw secret can match JSON syntax itself (a secret that starts with
+// a quote can match a key). Parse first and mask the string values, then serialize again
+// only when something changed, so untouched results stay byte for byte as they were.
+function redactText(text: string): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return redact(text) as string;
+  }
+  if (parsed === null || typeof parsed !== "object") return redact(text) as string;
+  const masked = redact(parsed);
+  if (JSON.stringify(masked) === JSON.stringify(parsed)) return text;
+  return JSON.stringify(masked, null, text.includes("\n") ? 2 : undefined);
+}
+
 // Applied to every successful tool result before it leaves the server: registered
 // secrets are masked in the text, then the text is held to the size limit. Redaction
 // runs first so a secret cannot survive by sitting in the truncated preview.
@@ -62,7 +79,7 @@ export function finalizeToolResult<T>(result: T, maxBytes: number = resolveMaxRe
   if (!Array.isArray(content)) return result;
   const bounded = content.map((item: TextContentLike) => {
     if (!item || item.type !== "text" || typeof item.text !== "string") return item;
-    return { ...item, text: boundText(redact(item.text) as string, maxBytes) };
+    return { ...item, text: boundText(redactText(item.text), maxBytes) };
   });
   return { ...result, content: bounded };
 }
