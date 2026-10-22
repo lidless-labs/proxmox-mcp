@@ -29,7 +29,11 @@ export function withRedactedErrors<T extends ToolLike>(tool: T): T {
         return finalizeToolResult(await orig(id, args));
       } catch (e) {
         const msg = boundErrorMessage((e as Error).message);
-        return { content: [{ type: "text", text: JSON.stringify({ error: msg }) }], isError: true };
+        // JSON escaping can grow the text past the character cap, so apply the byte limit too.
+        return finalizeToolResult({
+          content: [{ type: "text", text: JSON.stringify({ error: msg }) }],
+          isError: true,
+        });
       }
     },
   };

@@ -197,7 +197,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: SEARCH_TOOL_NAME,
         description: SEARCH_TOOL_DESCRIPTION,
         inputSchema: searchToolParameters,
-        annotations: { readOnlyHint: true },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
       ...tools.filter((t) => session.isLoaded(t.name)).map(descriptorFor),
     ],

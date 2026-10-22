@@ -4,6 +4,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { DEFAULT_MAX_RESULT_BYTES, finalizeToolResult, resolveMaxResultBytes } from "../src/output.ts";
 import { _resetForTests, registerSecret } from "../src/security.ts";
 import { createMcpServer } from "../src/server.ts";
+import { withRedactedErrors } from "../index.ts";
 import { classifyToolError, MAX_ERROR_MESSAGE_CHARS } from "../src/errors.ts";
 import { ProxmoxClientError } from "../src/proxmox-client.ts";
 import { startFakeProxmox, FakeProxmox } from "./fake-proxmox.ts";
@@ -132,6 +133,11 @@ describe("deferred search results get the same treatment", () => {
     const client = new Client({ name: "test", version: "0.0.0" });
     await Promise.all([server.connect(serverSide), client.connect(clientSide)]);
     try {
+      const listed = await client.listTools();
+      expect(listed.tools.find((t) => t.name === "proxmox_search_tools")?.annotations).toMatchObject({
+        readOnlyHint: true,
+        openWorldHint: false,
+      });
       const small = await client.callTool({
         name: "proxmox_search_tools",
         arguments: { query: "list vms example-secret-value" },
@@ -148,6 +154,25 @@ describe("deferred search results get the same treatment", () => {
       await client.close();
       await server.close();
     }
+  });
+});
+
+describe("OpenClaw wrapper error results get the same bound", () => {
+  afterEach(() => {
+    delete process.env.PROXMOX_MAX_RESULT_BYTES;
+  });
+
+  it("keeps a multi-byte error within the byte limit", async () => {
+    process.env.PROXMOX_MAX_RESULT_BYTES = "2048";
+    const tool = withRedactedErrors({
+      name: "t",
+      execute: async () => {
+        throw new Error("é".repeat(2_000));
+      },
+    });
+    const result = (await tool.execute("id", {})) as { content: Array<{ text: string }>; isError: boolean };
+    expect(result.isError).toBe(true);
+    expect(Buffer.byteLength(result.content[0].text, "utf8")).toBeLessThanOrEqual(2048);
   });
 });
 
