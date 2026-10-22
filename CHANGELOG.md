@@ -8,7 +8,7 @@ All notable changes to proxmox-mcp are documented here. The format is based on [
 
 ### Fixed
 
-- Tool annotations: `tools/list` now reports `destructiveHint: true` for the safe-write tools that execute commands, write files, stop, reset, reboot or suspend workloads, delete pools, tokens, backup jobs, firewall rules, HA resources and replication jobs, or change credentials, permissions, firewall state, disk placement or guest configuration. The four confirm-gated guest reads report `readOnlyHint: true`. `idempotentHint` and `openWorldHint` are set where they hold. Gates and tiers are unchanged.
+- Tool annotations: `tools/list` now reports `destructiveHint: true` for the safe-write tools that execute commands, write files, stop, reset, reboot or suspend workloads, delete pools, tokens, backup jobs, firewall rules, HA resources and replication jobs, or change credentials, permissions, firewall state, disk placement or guest configuration. The four confirm-gated guest reads report `readOnlyHint: true`. `idempotentHint` is set where it holds, and `openWorldHint` is stated on every tool. Gates and tiers are unchanged.
 - Successful tool results now pass through secret redaction, as errors already did.
 - Tool results above `PROXMOX_MAX_RESULT_BYTES` (default 100000) are replaced by a small JSON envelope instead of being returned whole. Upstream error text is capped at 2000 characters.
 - `PROXMOX_URL` must be an http(s) URL and `PROXMOX_SSH_PORT` must be an integer from 1 to 65535; invalid values fail at startup with a `ConfigError` instead of producing `NaN` or a confusing connection error.

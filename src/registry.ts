@@ -210,16 +210,18 @@ export const OPEN_WORLD_HINT_TOOLS: ReadonlySet<string> = new Set(["proxmox_down
 // hint sets above. A hint set can only raise the warning level (destructive) or mark a
 // confirm-gated guest read as read-only; it never changes the tier or the gate.
 export function annotationsForTool(name: string): ToolAnnotations {
+  // An omitted openWorldHint means true to a client, so state it for every tool.
+  const openWorldHint = OPEN_WORLD_HINT_TOOLS.has(name);
   const annotations = annotationsForTier(tierForTool(name));
   if (annotations.readOnlyHint !== true && DESTRUCTIVE_HINT_TOOLS.has(name)) {
     annotations.destructiveHint = true;
   }
   if (READ_ONLY_HINT_TOOLS.has(name)) {
-    return { readOnlyHint: true };
+    return { readOnlyHint: true, openWorldHint };
   }
+  annotations.openWorldHint = openWorldHint;
   if (annotations.readOnlyHint === true) return annotations;
   if (IDEMPOTENT_HINT_TOOLS.has(name)) annotations.idempotentHint = true;
-  if (OPEN_WORLD_HINT_TOOLS.has(name)) annotations.openWorldHint = true;
   return annotations;
 }
 

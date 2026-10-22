@@ -151,6 +151,35 @@ describe("deferred search results get the same treatment", () => {
   });
 });
 
+describe("error results get the same bound", () => {
+  afterEach(() => {
+    delete process.env.PROXMOX_MAX_RESULT_BYTES;
+  });
+
+  it("bounds the unknown tool error, whatever the name length", async () => {
+    process.env.PROXMOX_MAX_RESULT_BYTES = "4096";
+    const server = createMcpServer({
+      url: "http://127.0.0.1:9",
+      tokenId: "u@pam!t",
+      tokenSecret: "example-secret-value",
+      tlsInsecure: false,
+      ssh: { host: "pve.example", port: 22, user: "root", keyPath: "/k", vmUser: "root", vmKeyPath: "/k" },
+    });
+    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "test", version: "0.0.0" });
+    await Promise.all([server.connect(serverSide), client.connect(clientSide)]);
+    try {
+      const result = await client.callTool({ name: "x".repeat(50_000), arguments: {} });
+      const body = (result.content as Array<{ text: string }>)[0].text;
+      expect(result.isError).toBe(true);
+      expect(Buffer.byteLength(body, "utf8")).toBeLessThanOrEqual(4096);
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+});
+
 describe("server applies the result bound end to end", () => {
   let fake: FakeProxmox | null = null;
   afterEach(async () => {

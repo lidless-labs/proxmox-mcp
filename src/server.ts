@@ -204,6 +204,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 
+// Error results are held to the same size limit and redaction as successful ones.
+const errorResult = (payload: unknown) =>
+  finalizeToolResult({ content: [{ type: "text", text: JSON.stringify(redact(payload)) }], isError: true });
+
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
   if (deferred && session !== null && searchIndex !== null && req.params.name === SEARCH_TOOL_NAME) {
     try {
@@ -217,24 +221,17 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       if (outcome.added.length > 0) await server.sendToolListChanged();
       return finalizeToolResult(outcome.result);
     } catch (e) {
-      const payload = redact(classifyToolError(e));
-      return { content: [{ type: "text", text: JSON.stringify(payload) }], isError: true };
+      return errorResult(classifyToolError(e));
     }
   }
 
   const t = toolMap.get(req.params.name);
   if (!t) {
-    return {
-      content: [{
-        type: "text",
-        text: JSON.stringify({
-          error: `unknown tool: ${req.params.name}`,
-          code: "UNKNOWN_TOOL",
-          name: "UnknownToolError",
-        }),
-      }],
-      isError: true,
-    };
+    return errorResult({
+      error: `unknown tool: ${req.params.name}`,
+      code: "UNKNOWN_TOOL",
+      name: "UnknownToolError",
+    });
   }
   // A direct call to a registered tool that search has not surfaced yet is honored, and
   // the tool is marked loaded so tools/list stays consistent with what the client just
@@ -245,8 +242,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       await t.execute(req.params.name, (req.params.arguments ?? {}) as Record<string, unknown>),
     );
   } catch (e) {
-    const payload = redact(classifyToolError(e));
-    return { content: [{ type: "text", text: JSON.stringify(payload) }], isError: true };
+    return errorResult(classifyToolError(e));
   }
 });
 

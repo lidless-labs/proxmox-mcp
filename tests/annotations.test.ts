@@ -42,7 +42,7 @@ describe("tool annotations", () => {
 
   it("reports confirm-gated guest reads as read-only", () => {
     for (const name of ["proxmox_read_file", "proxmox_stat_path", "proxmox_service_status", "proxmox_list_directory"]) {
-      expect(annotationsForTool(name), name).toEqual({ readOnlyHint: true });
+      expect(annotationsForTool(name), name).toEqual({ readOnlyHint: true, openWorldHint: false });
     }
   });
 
@@ -71,6 +71,12 @@ describe("tool annotations", () => {
     for (const name of Object.keys(TOOL_TIERS)) {
       const a = annotationsForTool(name);
       expect(a.readOnlyHint === true && a.destructiveHint === true, name).toBe(false);
+    }
+  });
+
+  it("states openWorldHint for every tool, true only for download_url", () => {
+    for (const name of Object.keys(TOOL_TIERS)) {
+      expect(annotationsForTool(name).openWorldHint, name).toBe(name === "proxmox_download_url");
     }
   });
 
@@ -104,7 +110,7 @@ describe("tool annotations", () => {
       expect(byName.get("proxmox_delete_token")?.destructiveHint).toBe(true);
       expect(byName.get("proxmox_read_file")?.readOnlyHint).toBe(true);
       expect(byName.get("proxmox_download_url")?.openWorldHint).toBe(true);
-      expect(byName.get("proxmox_status")).toEqual({ readOnlyHint: true });
+      expect(byName.get("proxmox_status")).toEqual({ readOnlyHint: true, openWorldHint: false });
     } finally {
       await client.close();
       await server.close();
