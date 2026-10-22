@@ -36,19 +36,28 @@ export function registerSecret(s: string): void {
   }
 }
 
+// Results are serialized to JSON before they are masked, so a secret containing a quote,
+// backslash or control character appears in its escaped form. Mask both forms.
+function secretForms(secret: string): string[] {
+  const escaped = JSON.stringify(secret).slice(1, -1);
+  return escaped === secret ? [secret] : [secret, escaped];
+}
+
 function maskString(s: string): string {
   let out = s;
   for (const secret of SECRETS) {
-    if (!out.includes(secret)) continue;
-    if (secret.length >= MIN_SUBSTRING_LENGTH) {
-      out = out.split(secret).join("REDACTED");
-    } else {
-      // Keep the left delimiter and look ahead at the right one, so back-to-back
-      // occurrences ("s s s") all get replaced.
-      out = out.replace(
-        new RegExp(`(^|[^A-Za-z0-9])${escapeRegExp(secret)}(?=[^A-Za-z0-9]|$)`, "g"),
-        (_match, left: string) => `${left}REDACTED`,
-      );
+    for (const form of secretForms(secret)) {
+      if (!out.includes(form)) continue;
+      if (form.length >= MIN_SUBSTRING_LENGTH) {
+        out = out.split(form).join("REDACTED");
+      } else {
+        // Keep the left delimiter and look ahead at the right one, so back-to-back
+        // occurrences ("s s s") all get replaced.
+        out = out.replace(
+          new RegExp(`(^|[^A-Za-z0-9])${escapeRegExp(form)}(?=[^A-Za-z0-9]|$)`, "g"),
+          (_match, left: string) => `${left}REDACTED`,
+        );
+      }
     }
   }
   out = out.replace(BASE64_TOKEN_RE, (token) => {

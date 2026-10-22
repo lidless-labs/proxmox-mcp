@@ -64,6 +64,23 @@ describe("finalizeToolResult", () => {
   });
 });
 
+describe("finalizeToolResult masks secrets that JSON escaping changed", () => {
+  it("masks a secret with a quote, backslash or newline in a serialized result", () => {
+    const secret = 'pa"ss\\wo\nrd-12345';
+    registerSecret(secret);
+    const result = text(JSON.stringify({ stdout: `login ${secret} ok`, other: secret }));
+    const out = finalizeToolResult(result, 4096).content[0].text;
+    expect(out).not.toContain("ss");
+    expect(out).not.toContain(JSON.stringify(secret).slice(1, -1));
+    expect(out).toContain("REDACTED");
+  });
+
+  it("still masks the raw form", () => {
+    registerSecret("example-secret-value");
+    expect(finalizeToolResult(text("x example-secret-value y"), 4096).content[0].text).toBe("x REDACTED y");
+  });
+});
+
 describe("classifyToolError bounds upstream text", () => {
   it("caps a long upstream error body and says how much was dropped", () => {
     const payload = classifyToolError(new ProxmoxClientError(502, "<html>" + "z".repeat(20_000)));
@@ -83,6 +100,45 @@ describe("classifyToolError bounds upstream text", () => {
     const message = "p".repeat(MAX_ERROR_MESSAGE_CHARS - 5) + "example-secret-value" + "q".repeat(100);
     const payload = classifyToolError(new Error(message));
     expect(payload.error).not.toContain("example");
+  });
+});
+
+describe("deferred search results get the same treatment", () => {
+  afterEach(() => {
+    delete process.env.PROXMOX_DEFERRED_TOOLS;
+    delete process.env.PROXMOX_MAX_RESULT_BYTES;
+  });
+
+  it("masks a registered secret and bounds a huge query echoed by proxmox_search_tools", async () => {
+    process.env.PROXMOX_DEFERRED_TOOLS = "1";
+    process.env.PROXMOX_MAX_RESULT_BYTES = "4096";
+    const server = createMcpServer({
+      url: "http://127.0.0.1:9",
+      tokenId: "u@pam!t",
+      tokenSecret: "example-secret-value",
+      tlsInsecure: false,
+      ssh: { host: "pve.example", port: 22, user: "root", keyPath: "/k", vmUser: "root", vmKeyPath: "/k" },
+    });
+    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "test", version: "0.0.0" });
+    await Promise.all([server.connect(serverSide), client.connect(clientSide)]);
+    try {
+      const small = await client.callTool({
+        name: "proxmox_search_tools",
+        arguments: { query: "list vms example-secret-value" },
+      });
+      expect((small.content as Array<{ text: string }>)[0].text).not.toContain("example-secret-value");
+
+      const big = await client.callTool({
+        name: "proxmox_search_tools",
+        arguments: { query: "list vms " + "z".repeat(50_000) },
+      });
+      const body = (big.content as Array<{ text: string }>)[0].text;
+      expect(Buffer.byteLength(body, "utf8")).toBeLessThanOrEqual(4096);
+    } finally {
+      await client.close();
+      await server.close();
+    }
   });
 });
 

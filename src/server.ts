@@ -215,7 +215,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       // Only notify when the visible set actually changed, so a repeated search does
       // not make the client re-list for nothing.
       if (outcome.added.length > 0) await server.sendToolListChanged();
-      return outcome.result;
+      return finalizeToolResult(outcome.result);
     } catch (e) {
       const payload = redact(classifyToolError(e));
       return { content: [{ type: "text", text: JSON.stringify(payload) }], isError: true };
