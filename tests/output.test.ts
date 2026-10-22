@@ -166,7 +166,7 @@ describe("OpenClaw wrapper error results get the same bound", () => {
     process.env.PROXMOX_MAX_RESULT_BYTES = "2048";
     const tool = withRedactedErrors({
       name: "t",
-      execute: async () => {
+      execute: async (_id: string, _args: Record<string, unknown>): Promise<unknown> => {
         throw new Error("é".repeat(2_000));
       },
     });
