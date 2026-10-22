@@ -9,7 +9,9 @@ import { resolveConfig, type ProxmoxConfig } from "./src/config.ts";
 import { ProxmoxClient } from "./src/proxmox-client.ts";
 import { execInLxc, execViaDirectSsh } from "./src/ssh-executor.ts";
 import type { SshExecutor } from "./src/tools/_util.ts";
-import { registerSecret, redact } from "./src/security.ts";
+import { registerSecret } from "./src/security.ts";
+import { finalizeToolResult } from "./src/output.ts";
+import { boundErrorMessage } from "./src/errors.ts";
 import * as tools from "./src/tools/index.ts";
 
 interface ToolLike {
@@ -24,10 +26,14 @@ export function withRedactedErrors<T extends ToolLike>(tool: T): T {
     ...tool,
     execute: async (id: string, args: Record<string, unknown>) => {
       try {
-        return await orig(id, args);
+        return finalizeToolResult(await orig(id, args));
       } catch (e) {
-        const msg = redact((e as Error).message) as string;
-        return { content: [{ type: "text", text: JSON.stringify({ error: msg }) }], isError: true };
+        const msg = boundErrorMessage((e as Error).message);
+        // JSON escaping can grow the text past the character cap, so apply the byte limit too.
+        return finalizeToolResult({
+          content: [{ type: "text", text: JSON.stringify({ error: msg }) }],
+          isError: true,
+        });
       }
     },
   };

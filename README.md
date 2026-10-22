@@ -165,6 +165,8 @@ Generated from [`docs/assets/workflows/proxmox-safety.json`](docs/assets/workflo
 **Safe writes (41):** require `confirm: true`. The schema documents the gate on every tool. `WriteGateError` fires before any HTTP call.
 **Destructive (8):** require `confirm: true` + `destructive: true` + env `PROXMOX_ENABLE_DESTRUCTIVE=1`. All three gates must be satisfied; if any one is missing the tool throws `WriteGateError` before resolving the resource.
 
+**MCP annotations.** `tools/list` reports `readOnlyHint`, `destructiveHint` and `openWorldHint` on every tool (`true` only for `proxmox_download_url`, which fetches from a host outside the cluster, and `proxmox_exec`, whose shell command can contact any host), plus `idempotentHint` where it applies, so clients that ask a person before running a tool can do so. The annotations follow the tier with these refinements: the four gated guest reads report `readOnlyHint: true`, and the safe-write tools that execute commands, write files, stop or reset workloads, or change credentials, permissions, firewall or storage placement report `destructiveHint: true` even though their gate stays `confirm: true`. The gate arguments a call must carry are unchanged; the hint only changes how a client presents the call. The full list lives in `src/registry.ts`.
+
 > Eight tools are destructive and can delete, hard-stop, or power off resources: `proxmox_destroy_resource`, `proxmox_cleanup_smoke_resources`, `proxmox_rollback_snapshot`, `proxmox_delete_snapshot`, `proxmox_force_stop_resource`, `proxmox_delete_volume`, `proxmox_node_power`, and `proxmox_delete_storage`. They are gated behind the `PROXMOX_ENABLE_DESTRUCTIVE=1` process env flag and stay inert until you set it. See [SECURITY.md](SECURITY.md) and the [Safety](#safety) section.
 
 ## Quickstart
@@ -254,6 +256,7 @@ The `proxmox_exec`, `proxmox_read_file`, and `proxmox_write_file` tools SSH to t
 | `PROXMOX_VM_SSH_USER` | falls through to `PROXMOX_SSH_USER` | Default user for direct VM SSH |
 | `PROXMOX_VM_SSH_KEY` | falls through to `PROXMOX_SSH_KEY` | Default key for direct VM SSH |
 | `PROXMOX_SSH_MAX_OUTPUT_BYTES` | `1048576` | Max stdout bytes and max stderr bytes captured per SSH command |
+| `PROXMOX_MAX_RESULT_BYTES` | `100000` | Max size of one tool result returned to the client (minimum `2048`). Larger results are replaced by a JSON envelope with `truncated: true` and a preview. |
 | `PROXMOX_EXEC_BACKEND` | `ssh` | QEMU exec backend: `ssh` (direct SSH to the VM) or `guest-agent` (qemu-guest-agent API, no in-guest SSH key needed). LXC always uses `pct exec` over host SSH. |
 
 Per-VM overrides (read at execute time, no MCP restart needed):

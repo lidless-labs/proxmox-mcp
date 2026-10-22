@@ -8,7 +8,8 @@ import { registerSecret, redact } from "./security.ts";
 import type { SshExecutor } from "./tools/_util.ts";
 import * as toolFactories from "./tools/index.ts";
 import { classifyToolError } from "./errors.ts";
-import { TOOL_TIERS, annotationsForTier, tierForTool } from "./registry.ts";
+import { finalizeToolResult } from "./output.ts";
+import { TOOL_TIERS, annotationsForTool } from "./registry.ts";
 import { buildSearchIndex, TOOL_SEARCH_META } from "./search.ts";
 import {
   createDeferredSession,
@@ -185,7 +186,7 @@ const descriptorFor = (t: (typeof tools)[number]) => ({
   name: t.name,
   description: t.description,
   inputSchema: t.parameters,
-  annotations: annotationsForTier(tierForTool(t.name)),
+  annotations: annotationsForTool(t.name),
 });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -196,12 +197,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: SEARCH_TOOL_NAME,
         description: SEARCH_TOOL_DESCRIPTION,
         inputSchema: searchToolParameters,
-        annotations: { readOnlyHint: true },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
       ...tools.filter((t) => session.isLoaded(t.name)).map(descriptorFor),
     ],
   };
 });
+
+// Error results are held to the same size limit and redaction as successful ones.
+const errorResult = (payload: unknown) =>
+  finalizeToolResult({ content: [{ type: "text", text: JSON.stringify(redact(payload)) }], isError: true });
 
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
   if (deferred && session !== null && searchIndex !== null && req.params.name === SEARCH_TOOL_NAME) {
@@ -214,36 +219,30 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       // Only notify when the visible set actually changed, so a repeated search does
       // not make the client re-list for nothing.
       if (outcome.added.length > 0) await server.sendToolListChanged();
-      return outcome.result;
+      return finalizeToolResult(outcome.result);
     } catch (e) {
-      const payload = redact(classifyToolError(e));
-      return { content: [{ type: "text", text: JSON.stringify(payload) }], isError: true };
+      return errorResult(classifyToolError(e));
     }
   }
 
   const t = toolMap.get(req.params.name);
   if (!t) {
-    return {
-      content: [{
-        type: "text",
-        text: JSON.stringify({
-          error: `unknown tool: ${req.params.name}`,
-          code: "UNKNOWN_TOOL",
-          name: "UnknownToolError",
-        }),
-      }],
-      isError: true,
-    };
+    return errorResult({
+      error: `unknown tool: ${req.params.name}`,
+      code: "UNKNOWN_TOOL",
+      name: "UnknownToolError",
+    });
   }
   // A direct call to a registered tool that search has not surfaced yet is honored, and
   // the tool is marked loaded so tools/list stays consistent with what the client just
   // used. Visibility is a token optimization; the executor's gates are the boundary.
   if (deferred && session !== null) session.load([t.name]);
   try {
-    return await t.execute(req.params.name, (req.params.arguments ?? {}) as Record<string, unknown>);
+    return finalizeToolResult(
+      await t.execute(req.params.name, (req.params.arguments ?? {}) as Record<string, unknown>),
+    );
   } catch (e) {
-    const payload = redact(classifyToolError(e));
-    return { content: [{ type: "text", text: JSON.stringify(payload) }], isError: true };
+    return errorResult(classifyToolError(e));
   }
 });
 

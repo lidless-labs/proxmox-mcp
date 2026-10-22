@@ -115,3 +115,38 @@ describe("resolveConfig", () => {
     expect(cfg.ssh.vmKeyPath).toBe("/keys/vm");
   });
 });
+
+describe("resolveConfig input validation", () => {
+  const base = {
+    PROXMOX_URL: "https://pve.example:8006",
+    PROXMOX_TOKEN_ID: "u@pam!t1",
+    PROXMOX_TOKEN_SECRET: "secret-uuid",
+  };
+
+  it("rejects a PROXMOX_URL that is not an http(s) URL without echoing it", () => {
+    for (const url of ["ftp://pve.example", "pve.example:8006", "file:///etc/passwd"]) {
+      expect(() => resolveConfig({ ...base, PROXMOX_URL: url })).toThrow(ConfigError);
+    }
+    expect(() => resolveConfig({ ...base, PROXMOX_URL: "ftp://pve.example/?key=hunter2" })).toThrow(
+      /scheme/,
+    );
+    try {
+      resolveConfig({ ...base, PROXMOX_URL: "ftp://pve.example/?key=hunter2" });
+    } catch (e) {
+      expect((e as Error).message).not.toContain("hunter2");
+    }
+  });
+
+  it("accepts http and https URLs", () => {
+    expect(resolveConfig({ ...base, PROXMOX_URL: "http://pve.example:8006/" }).url).toBe("http://pve.example:8006");
+    expect(resolveConfig(base).url).toBe("https://pve.example:8006");
+  });
+
+  it("validates PROXMOX_SSH_PORT instead of passing NaN through", () => {
+    for (const port of ["abc", "0", "70000", "22.5", "-1"]) {
+      expect(() => resolveConfig({ ...base, PROXMOX_SSH_PORT: port })).toThrow(/PROXMOX_SSH_PORT/);
+    }
+    expect(resolveConfig({ ...base, PROXMOX_SSH_PORT: "2222" }).ssh.port).toBe(2222);
+    expect(resolveConfig(base).ssh.port).toBe(22);
+  });
+});
