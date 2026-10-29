@@ -23,9 +23,13 @@ describe("resolveMaxResultBytes", () => {
 });
 
 describe("finalizeToolResult", () => {
-  it("passes small results through unchanged", () => {
+  it("preserves machine-readable data while marking its trust boundary", () => {
     const result = text('{"ok":true}');
-    expect(finalizeToolResult(result, 4096)).toEqual(result);
+    const out = finalizeToolResult(result, 4096) as any;
+    expect(out.content[0]).toEqual(result.content[0]);
+    expect(out._meta?.["proxmox-mcp/trust"]).toBe("untrusted");
+    expect(out.content.some((c: any) => c.type === "text" && /untrusted data/i.test(c.text))).toBe(true);
+    expect(finalizeToolResult(out, 4096)).toEqual(out);
   });
 
   it("replaces an oversized result with a valid JSON envelope under the limit", () => {
@@ -60,7 +64,7 @@ describe("finalizeToolResult", () => {
 
   it("leaves non-text content and non-object results alone", () => {
     const image = { content: [{ type: "image", data: "AAAA", mimeType: "image/png" }] };
-    expect(finalizeToolResult(image, 4096)).toEqual(image);
+    expect(finalizeToolResult(image, 4096).content[0]).toEqual(image.content[0]);
     expect(finalizeToolResult(undefined, 4096)).toBeUndefined();
   });
 });

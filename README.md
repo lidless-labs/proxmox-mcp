@@ -641,3 +641,7 @@ Token creation and ACL mutation are disabled by default. Both require `PROXMOX_E
 `proxmox_download_url` is disabled unless `PROXMOX_DOWNLOAD_EGRESS_ENFORCED=1` and `PROXMOX_DOWNLOAD_ALLOWED_ORIGINS` contains the source's exact HTTPS origin, for example `https://images.example.com`. No wildcard or suffix matching is used. URLs with credentials, fragments, IP literals, alternate ports, or local hostnames are rejected. Source certificate verification is mandatory.
 
 Proxmox performs the image fetch remotely. Before enabling dispatch, the operator must enforce destination-address restrictions and redirect policy at the hypervisor's fetch boundary, using a controlled egress proxy or equivalent network policy. That policy must cover DNS rebinding, all redirect hops, and private, loopback, link-local, and metadata destinations. The MCP server does not resolve or preflight the source URL and cannot verify remote DNS or redirect behavior. The environment flag records operator configuration, not proof of enforcement. Keep this feature disabled until those controls exist.
+
+### Result trust
+
+Every result leaving the MCP and OpenClaw adapters includes an untrusted-data notice and the metadata key `proxmox-mcp/trust: untrusted`. Machine-readable JSON stays in the first content block. Proxmox names, descriptions, logs, errors, and guest output can contain attacker-written instructions. The notice identifies their source boundary. It is not a sandbox or a guarantee that a model will ignore those instructions.
