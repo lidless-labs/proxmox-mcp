@@ -399,7 +399,7 @@ async function main() {
 
   const cfg = resolveConfig(process.env);
   const getClient = () => new ProxmoxClient(cfg, { retryDelayMs: 100 });
-  const hostCfg = { host: cfg.ssh.host, port: cfg.ssh.port, user: cfg.ssh.user, keyPath: cfg.ssh.keyPath };
+  const hostCfg = { host: cfg.ssh.host, port: cfg.ssh.port, user: cfg.ssh.user, hostFingerprint: cfg.ssh.hostFingerprint, keyPath: cfg.ssh.keyPath };
   const getSsh = (): SshExecutor => ({
     execInLxc: (vmid, command, timeoutMs, stdin) => execInLxc(hostCfg, vmid, command, timeoutMs, stdin),
     execViaDirectSsh: (target, command, timeoutMs, stdin) => execViaDirectSsh(target, command, timeoutMs, stdin),
