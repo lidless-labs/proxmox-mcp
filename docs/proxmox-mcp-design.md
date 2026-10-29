@@ -111,7 +111,7 @@ Resources are addressed by `vmid` only - the tool figures out which node + type 
 Proxmox API tokens. The operator creates one in the web UI under Datacenter -> API Tokens, then sets:
 
 ```
-PROXMOX_URL=https://pve.example.local:8006
+PROXMOX_URL=https://proxmox.example.com:8006
 PROXMOX_TOKEN_ID=claude@pam!api-token-1
 PROXMOX_TOKEN_SECRET=<uuid>
 PROXMOX_TLS_INSECURE=true                     # default false; toggle for self-signed
