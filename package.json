@@ -12,8 +12,8 @@
       "minGatewayVersion": "2026.3.24-beta.2"
     },
     "build": {
-      "openclawVersion": "2026.5.17",
-      "pluginSdkVersion": "2026.5.17"
+      "openclawVersion": "2026.6.35",
+      "pluginSdkVersion": "2026.6.35"
     }
   },
   "bin": {
@@ -53,7 +53,7 @@
   "devDependencies": {
     "@types/node": "^25.6.2",
     "@types/ssh2": "^1.15.5",
-    "openclaw": "2026.6.6",
+    "openclaw": "2026.6.35",
     "tsup": "^8.4.0",
     "tsx": "^4.19.0",
     "typescript": "^7.0.2",
