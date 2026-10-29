@@ -56,10 +56,17 @@ export function createProxmoxCreateTokenTool(getClient: ClientFactory) {
       if (typeof args.expire === "number") body.expire = args.expire;
       const consumer = await resolveTokenConsumer();
       try {
-        const res = await getClient().post<CreateTokenResult>(
-          `/access/users/${encodeURIComponent(args.userid)}/token/${encodeURIComponent(args.tokenid)}`,
-          body,
-        );
+        let res: CreateTokenResult;
+        try {
+          res = await getClient().post<CreateTokenResult>(
+            `/access/users/${encodeURIComponent(args.userid)}/token/${encodeURIComponent(args.tokenid)}`,
+            body,
+          );
+        } catch {
+          // A generated credential in an error/parse fragment is not registered yet.
+          // Never attach the upstream exception or replay an uncertain token creation.
+          throw new Error("Token creation outcome is unknown. Inspect token state and revoke any created token before retrying provisioning.");
+        }
         if (typeof res?.value !== "string" || !res.value) {
           throw new Error("Token creation returned no credential. Inspect token state before retrying provisioning.");
         }

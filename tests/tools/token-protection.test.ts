@@ -89,7 +89,7 @@ describe("identity provisioning", () => {
   it.each(["api-error", "missing-credential"])("closes the consumer on %s without retrying provisioning", async (kind) => {
     fake.routes[0].status = kind === "api-error" ? 500 : 200;
     fake.routes[0].body = { data: {} };
-    await expect(createProxmoxCreateTokenTool(client).execute("test", args)).rejects.toThrow(kind === "api-error" ? /500/ : /Inspect token state/);
+    await expect(createProxmoxCreateTokenTool(client).execute("test", args)).rejects.toThrow(kind === "api-error" ? /outcome is unknown/ : /Inspect token state/);
     expect(fake.requests.length).toBe(1);
     await expect(readFile(join(dir, "digest"))).rejects.toMatchObject({ code: "ENOENT" });
   });
@@ -107,4 +107,20 @@ describe("identity provisioning", () => {
     expect(String(error)).toMatch(/created.*delivery failed/i);
     expect(fake.requests.length).toBe(1);
   }, 15_000);
+  it.each(["api-error", "malformed-success"])("suppresses unregistered credential fragments on %s", async (kind) => {
+    fake.routes[0].status = kind === "api-error" ? 500 : 200;
+    fake.routes[0].body = kind === "api-error"
+      ? { message: "upstream created token " + value }
+      : '{"data":{"value":' + JSON.stringify(value) + ',"broken":]}}';
+    let error: unknown;
+    try { await createProxmoxCreateTokenTool(client).execute("test", args); }
+    catch (caught) { error = caught; }
+    expect(error).toBeInstanceOf(Error);
+    expect(String(error)).not.toContain(value);
+    expect(String(error)).toContain("Token creation outcome is unknown");
+    expect(String(error)).toMatch(/inspect.*revoke.*before retrying/i);
+    expect(fake.requests).toHaveLength(1);
+    await expect(readFile(join(dir, "digest"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
 });
