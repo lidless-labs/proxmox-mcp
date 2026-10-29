@@ -627,3 +627,7 @@ MIT. See [LICENSE](LICENSE).
 ### SSH host identity
 
 SSH commands fail closed unless a trusted OpenSSH SHA256 host-key fingerprint is configured. Set `PROXMOX_SSH_HOST_FINGERPRINT=SHA256:<base64-digest>` for the hypervisor and `PROXMOX_VM_<vmid>_SSH_HOST_FINGERPRINT` for each QEMU guest. Obtain these fingerprints through an independently trusted operator channel. An IP returned by the guest agent does not establish host identity. Missing, malformed, or mismatched pins prevent SSH authentication. Read-only API tools do not require SSH pins.
+
+### API response limits
+
+Both HTTP transports enforce a 30-second deadline through completion of the response body and a 2 MiB response cap, including error responses. API redirects are refused. Only GET requests may be retried automatically. A failed mutation may already have taken effect, so inspect its state before retrying.
