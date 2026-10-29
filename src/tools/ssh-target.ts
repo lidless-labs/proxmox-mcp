@@ -56,6 +56,7 @@ export function qemuSshTarget(vmid: number, host: string, defaults: VmSshDefault
   return {
     host,
     port: 22,
+    hostFingerprint: nonEmptyEnv(`PROXMOX_VM_${vmid}_SSH_HOST_FINGERPRINT`) ?? undefined,
     user: nonEmptyEnv(`PROXMOX_VM_${vmid}_SSH_USER`) ?? defaults.vmUser,
     keyPath: nonEmptyEnv(`PROXMOX_VM_${vmid}_SSH_KEY`) ?? defaults.vmKeyPath,
   };

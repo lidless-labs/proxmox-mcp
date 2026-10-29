@@ -1,5 +1,6 @@
 // content-guard: allow private-ipv4 file
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 
 // vi.mock factories are hoisted before any top-level code, so we cannot
@@ -45,7 +46,7 @@ vi.mock("node:fs/promises", () => ({
 
 import { execInLxc, execViaDirectSsh, SshExecError } from "../src/ssh-executor.ts";
 
-const HOST_CFG = { host: "192.0.2.10", port: 22, user: "claude", keyPath: "~/.ssh/id_ed25519_proxmox" };
+const HOST_CFG = { host: "192.0.2.10", port: 22, user: "claude", keyPath: "~/.ssh/id_ed25519_proxmox", hostFingerprint: "SHA256:" + createHash("sha256").update("trusted-host-key").digest("base64").replace(/=+$/, "") };
 
 beforeEach(() => {
   lastClient.current = null;
@@ -72,6 +73,19 @@ function drive(stdout: string, stderr: string, exitCode: number) {
 }
 
 describe("ssh-executor", () => {
+  it.each([execViaDirectSsh, (cfg: typeof HOST_CFG, cmd: string, ms: number) => execInLxc(cfg, 109, cmd, ms)])("refuses unpinned identity before connecting", async (exec) => {
+    await expect(exec({ ...HOST_CFG, hostFingerprint: undefined } as any, "true", 25)).rejects.toThrow(/fingerprint/i);
+    expect(lastClient.current).toBeNull();
+  });
+
+  it("accepts only the configured host key before authentication", async () => {
+    drive("ok", "", 0);
+    await execViaDirectSsh(HOST_CFG, "true", 5000);
+    const verifier = lastClient.current.connect.mock.calls[0][0].hostVerifier;
+    expect(typeof verifier).toBe("function");
+    expect(verifier(Buffer.from("trusted-host-key"))).toBe(true);
+    expect(verifier(Buffer.from("attacker-host-key"))).toBe(false);
+  });
   describe("execInLxc", () => {
     it("wraps the command in `sudo pct exec <vmid> -- sh -c` with base64 envelope", async () => {
       drive("hello\n", "", 0);
@@ -125,7 +139,7 @@ describe("ssh-executor", () => {
     it("runs the command without `sudo pct exec` wrapper", async () => {
       drive("ok\n", "", 0);
       const result = await execViaDirectSsh(
-        { host: "10.0.0.5", port: 22, user: "ubuntu", keyPath: "/keys/vm" },
+        { host: "10.0.0.5", port: 22, user: "ubuntu", keyPath: "/keys/vm", hostFingerprint: HOST_CFG.hostFingerprint },
         "uname -a",
         5000,
       );

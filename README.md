@@ -623,3 +623,7 @@ MIT. See [LICENSE](LICENSE).
 <p align="center"><sub><strong>Homelab:</strong> <a href="https://github.com/lidless-labs/adguardctrl">adguardctrl</a> &middot; <a href="https://github.com/lidless-labs/immichctrl">immichctrl</a> &middot; <a href="https://github.com/lidless-labs/jellyctrl">jellyctrl</a> &middot; <a href="https://github.com/lidless-labs/proxguard">proxguard</a></sub></p>
 
 <p align="center"><sub><a href="https://lidless.dev">All tools</a> &middot; <a href="https://github.com/lidless-labs">Lidless Labs on GitHub</a></sub></p>
+
+### SSH host identity
+
+SSH commands fail closed unless a trusted OpenSSH SHA256 host-key fingerprint is configured. Set `PROXMOX_SSH_HOST_FINGERPRINT=SHA256:<base64-digest>` for the hypervisor and `PROXMOX_VM_<vmid>_SSH_HOST_FINGERPRINT` for each QEMU guest. Obtain these fingerprints through an independently trusted operator channel. An IP returned by the guest agent does not establish host identity. Missing, malformed, or mismatched pins prevent SSH authentication. Read-only API tools do not require SSH pins.
