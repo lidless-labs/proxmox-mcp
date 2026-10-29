@@ -132,7 +132,7 @@ Generated from [`docs/assets/workflows/proxmox-safety.json`](docs/assets/workflo
 | `proxmox_resume_resource` | 2 safe-write | Resume a suspended guest. Requires `confirm: true`. |
 | `proxmox_reset_resource` | 2 safe-write | Hard-reset a QEMU VM (reset button; no graceful shutdown). Requires `confirm: true`. |
 | `proxmox_convert_to_template` | 2 safe-write | Convert a stopped guest into a clone template (one-way). Requires `confirm: true`. |
-| `proxmox_download_url` | 2 safe-write | Download an ISO or container template from a URL onto a storage. Requires `confirm: true`. |
+| `proxmox_download_url` | 2 safe-write | Download an image from an approved HTTPS origin. Requires `confirm: true` and operator-enforced remote egress policy. |
 | `proxmox_cancel_task` | 2 safe-write | Stop a running task by UPID (abort a stuck migration/backup). Requires `confirm: true`. |
 | `proxmox_add_firewall_rule` | 2 safe-write | Add a firewall rule at cluster/node/guest scope. Requires `confirm: true`. |
 | `proxmox_delete_firewall_rule` | 2 safe-write | Delete a firewall rule by position at a scope. Requires `confirm: true`. |
@@ -141,8 +141,8 @@ Generated from [`docs/assets/workflows/proxmox-safety.json`](docs/assets/workflo
 | `proxmox_create_storage` | 2 safe-write | Define a new datacenter storage (dir/nfs/lvm/pbs/etc). Requires `confirm: true`. |
 | `proxmox_create_backup_job` | 2 safe-write | Create a scheduled vzdump backup job. Requires `confirm: true`. |
 | `proxmox_delete_backup_job` | 2 safe-write | Delete a scheduled backup job (archives untouched). Requires `confirm: true`. |
-| `proxmox_set_acl` | 2 safe-write | Grant or revoke a role for a user/token/group on a path. Requires `confirm: true`. |
-| `proxmox_create_token` | 2 safe-write | Create an API token; returns the secret once. Requires `confirm: true`. |
+| `proxmox_set_acl` | 2 safe-write | Grant or revoke a role for a user/token/group on a path. Requires `confirm: true` and identity provisioning enabled. |
+| `proxmox_create_token` | 2 safe-write | Create an API token and stream its secret to a protected credential consumer. Requires `confirm: true` and identity provisioning enabled. |
 | `proxmox_delete_token` | 2 safe-write | Revoke an API token. Requires `confirm: true`. |
 | `proxmox_create_pool` | 2 safe-write | Create a resource pool. Requires `confirm: true`. |
 | `proxmox_update_pool` | 2 safe-write | Add/remove guests or storage in a pool. Requires `confirm: true`. |
@@ -245,7 +245,7 @@ Requirements and caveats:
 
 ### In-container exec env vars
 
-The `proxmox_exec`, `proxmox_read_file`, and `proxmox_write_file` tools SSH to the Proxmox host (for LXC, via `pct exec`) or directly to the VM (for QEMU). All are optional; defaults derive from `PROXMOX_URL`.
+The `proxmox_exec`, `proxmox_read_file`, and `proxmox_write_file` tools SSH to the Proxmox host (for LXC, via `pct exec`) or directly to the VM (for QEMU). SSH connection defaults derive from `PROXMOX_URL`. Trusted host-key fingerprints are required for each SSH target.
 
 | Env var | Default | Purpose |
 | --- | --- | --- |
@@ -253,6 +253,8 @@ The `proxmox_exec`, `proxmox_read_file`, and `proxmox_write_file` tools SSH to t
 | `PROXMOX_SSH_PORT` | `22` | SSH port |
 | `PROXMOX_SSH_USER` | `root` | SSH user on Proxmox host |
 | `PROXMOX_SSH_KEY` | `~/.ssh/id_ed25519` | Key path for Proxmox host SSH |
+| `PROXMOX_SSH_HOST_FINGERPRINT` | unset, SSH denied | Trusted OpenSSH SHA256 fingerprint for the hypervisor |
+| `PROXMOX_VM_<vmid>_SSH_HOST_FINGERPRINT` | unset, guest SSH denied | Trusted OpenSSH SHA256 fingerprint for this guest |
 | `PROXMOX_VM_SSH_USER` | falls through to `PROXMOX_SSH_USER` | Default user for direct VM SSH |
 | `PROXMOX_VM_SSH_KEY` | falls through to `PROXMOX_SSH_KEY` | Default key for direct VM SSH |
 | `PROXMOX_SSH_MAX_OUTPUT_BYTES` | `1048576` | Max stdout bytes and max stderr bytes captured per SSH command |
