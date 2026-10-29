@@ -55,24 +55,28 @@ export function createProxmoxCreateTokenTool(getClient: ClientFactory) {
       if (typeof args.comment === "string" && args.comment.length > 0) body.comment = args.comment;
       if (typeof args.expire === "number") body.expire = args.expire;
       const consumer = await resolveTokenConsumer();
-      const res = await getClient().post<CreateTokenResult>(
-        `/access/users/${encodeURIComponent(args.userid)}/token/${encodeURIComponent(args.tokenid)}`,
-        body,
-      );
-      if (typeof res?.value !== "string" || !res.value) {
-        throw new Error("Token creation returned no credential. Inspect token state before retrying provisioning.");
+      try {
+        const res = await getClient().post<CreateTokenResult>(
+          `/access/users/${encodeURIComponent(args.userid)}/token/${encodeURIComponent(args.tokenid)}`,
+          body,
+        );
+        if (typeof res?.value !== "string" || !res.value) {
+          throw new Error("Token creation returned no credential. Inspect token state before retrying provisioning.");
+        }
+        const fullTokenId = res["full-tokenid"] ?? `${args.userid}!${args.tokenid}`;
+        registerSecret(res.value);
+        registerSecret(fullTokenId);
+        registerSecret(`PVEAPIToken=${fullTokenId}=${res.value}`);
+        await deliverToken(consumer, { userid: args.userid, tokenid: args.tokenid, full_tokenid: fullTokenId, secret: res.value });
+        return jsonToolResult({
+          userid: args.userid,
+          tokenid: args.tokenid,
+          delivered: true,
+          note: "The credential consumer accepted the token. The secret is not returned.",
+        });
+      } finally {
+        await consumer.close();
       }
-      const fullTokenId = res["full-tokenid"] ?? `${args.userid}!${args.tokenid}`;
-      registerSecret(res.value);
-      registerSecret(fullTokenId);
-      registerSecret(`PVEAPIToken=${fullTokenId}=${res.value}`);
-      await deliverToken(consumer, { userid: args.userid, tokenid: args.tokenid, full_tokenid: fullTokenId, secret: res.value });
-      return jsonToolResult({
-        userid: args.userid,
-        tokenid: args.tokenid,
-        delivered: true,
-        note: "The credential consumer accepted the token. The secret is not returned.",
-      });
     },
   };
 }
