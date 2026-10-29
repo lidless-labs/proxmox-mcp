@@ -296,10 +296,12 @@ proxmoxctl snapshots list 100
 proxmoxctl audit-permissions
 proxmoxctl recent-tasks --limit 20
 proxmoxctl task status UPID:pve:...
-proxmoxctl vms list --json              # raw JSON for piping
+proxmoxctl vms list --json              # redacted JSON for piping
 ```
 
-Run `proxmoxctl help` for the full command list. `--json` emits raw JSON instead of the concise summary. Exit codes: `0` success, `1` runtime error (backend unreachable / call failed, and `status` when a node is offline), `2` usage error (unknown command/flag or bad value).
+Run `proxmoxctl help` for the full command list. `--json` emits parseable, redacted JSON with a fixed `_external_data_notice`. Configured token IDs, token secrets, and authorization headers are masked in keys and values. Read results and runtime errors are untrusted Proxmox data. Human output uses fixed delimiters, and both formats escape upstream terminal controls and delimiter characters.
+
+Each output is limited to 64 KiB including its final newline. Oversized JSON becomes a notice with `truncated: true`, while human output includes `[truncated]`. Exit codes: `0` success, `1` runtime error (backend unreachable / call failed, and `status` when a node is offline), `2` usage error (unknown command/flag or bad value).
 
 ### Starting the MCP server
 

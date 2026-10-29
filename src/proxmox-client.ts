@@ -1,4 +1,5 @@
 import { request as httpsRequest } from "node:https";
+import { registerSecret } from "./security.ts";
 
 export interface ProxmoxClientOptions {
   retryDelayMs?: number;
@@ -36,6 +37,9 @@ export class ProxmoxClient {
 
   constructor(private cfg: ClientInstanceConfig, opts: ProxmoxClientOptions = {}) {
     this.authHeader = `PVEAPIToken=${cfg.tokenId}=${cfg.tokenSecret}`;
+    registerSecret(this.authHeader);
+    registerSecret(cfg.tokenId);
+    registerSecret(cfg.tokenSecret);
     this.retryDelayMs = opts.retryDelayMs ?? 1000;
     this.requestTimeoutMs = opts.requestTimeoutMs ?? 30_000;
     this.maxResponseBytes = opts.maxResponseBytes ?? 2 * 1024 * 1024;
