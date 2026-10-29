@@ -631,3 +631,7 @@ SSH commands fail closed unless a trusted OpenSSH SHA256 host-key fingerprint is
 ### API response limits
 
 Both HTTP transports enforce a 30-second deadline through completion of the response body and a 2 MiB response cap, including error responses. API redirects are refused. Only GET requests may be retried automatically. A failed mutation may already have taken effect, so inspect its state before retrying.
+
+### Identity provisioning
+
+Token creation and ACL mutation are disabled by default. Both require `PROXMOX_ENABLE_IDENTITY_PROVISIONING=1` in addition to `confirm:true`. Token creation also requires `PROXMOX_TOKEN_CONSUMER`, an absolute executable path owned by the process user or root with no group or other write access. The executable receives one JSON object on stdin with `userid`, `tokenid`, `full_tokenid`, and `secret`. It must store the credential in its protected credential store and exit zero only after acceptance. Its stdout and stderr are discarded, and delivery has a 10-second deadline. No shell or intermediate credential file is used. If delivery fails after creation, inspect and revoke the token before retrying.
