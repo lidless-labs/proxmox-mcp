@@ -3,6 +3,7 @@ export interface ProxmoxSshConfig {
   port: number;
   user: string;
   keyPath: string;
+  hostFingerprint?: string;
   vmUser: string;
   vmKeyPath: string;
 }
@@ -80,6 +81,7 @@ export function resolveConfig(env: Record<string, string | undefined>): ProxmoxC
       port: sshPort,
       user: sshUser,
       keyPath: sshKey,
+      hostFingerprint: env.PROXMOX_SSH_HOST_FINGERPRINT,
       vmUser: env.PROXMOX_VM_SSH_USER ?? sshUser,
       vmKeyPath: env.PROXMOX_VM_SSH_KEY ?? sshKey,
     },

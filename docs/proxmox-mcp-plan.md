@@ -159,11 +159,11 @@ import { resolveConfig, ConfigError } from "../src/config.ts";
 describe("resolveConfig", () => {
   it("parses required env", () => {
     const cfg = resolveConfig({
-      PROXMOX_URL: "https://pve.local:8006",
+      PROXMOX_URL: "https://proxmox.example.com:8006",
       PROXMOX_TOKEN_ID: "u@pam!t1",
       PROXMOX_TOKEN_SECRET: "secret-uuid",
     });
-    expect(cfg.url).toBe("https://pve.local:8006");
+    expect(cfg.url).toBe("https://proxmox.example.com:8006");
     expect(cfg.tokenId).toBe("u@pam!t1");
     expect(cfg.tokenSecret).toBe("secret-uuid");
     expect(cfg.tlsInsecure).toBe(false);
@@ -207,11 +207,11 @@ describe("resolveConfig", () => {
 
   it("strips trailing slash from PROXMOX_URL", () => {
     const cfg = resolveConfig({
-      PROXMOX_URL: "https://pve.local:8006/",
+      PROXMOX_URL: "https://proxmox.example.com:8006/",
       PROXMOX_TOKEN_ID: "u@pam!t",
       PROXMOX_TOKEN_SECRET: "s",
     });
-    expect(cfg.url).toBe("https://pve.local:8006");
+    expect(cfg.url).toBe("https://proxmox.example.com:8006");
   });
 });
 ```
@@ -894,7 +894,7 @@ git commit -m "feat(server): MCP entry + OpenClaw plugin + 12-tool registration"
 
 README mirrors adguard-mcp's structure: tool table, configuration table, install, 5-client setup blocks (Claude Desktop / Claude Code / OpenClaw / Hermes Agent / Codex CLI), safety section.
 
-Generic example values throughout (use `192.168.1.10` / `https://pve.example.local:8006`, never the operator's actual home-network IP).
+Generic example values throughout (use `192.0.2.10` / `https://proxmox.example.com:8006`, never the operator's actual home-network IP).
 
 Commit:
 

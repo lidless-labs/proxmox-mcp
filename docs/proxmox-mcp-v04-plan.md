@@ -117,7 +117,7 @@ Append to `tests/config.test.ts` (before the closing `});` of the outer `describ
 
   it("honors explicit PROXMOX_SSH_* env vars", () => {
     const cfg = resolveConfig({
-      PROXMOX_URL: "https://pve.local:8006",
+      PROXMOX_URL: "https://proxmox.example.com:8006",
       PROXMOX_TOKEN_ID: "u@pam!t",
       PROXMOX_TOKEN_SECRET: "s",
       PROXMOX_SSH_HOST: "192.0.2.10",
@@ -133,7 +133,7 @@ Append to `tests/config.test.ts` (before the closing `});` of the outer `describ
 
   it("falls VM SSH user/key through to host SSH user/key when VM-specific not set", () => {
     const cfg = resolveConfig({
-      PROXMOX_URL: "https://pve.local:8006",
+      PROXMOX_URL: "https://proxmox.example.com:8006",
       PROXMOX_TOKEN_ID: "u@pam!t",
       PROXMOX_TOKEN_SECRET: "s",
       PROXMOX_SSH_USER: "claude",
@@ -145,7 +145,7 @@ Append to `tests/config.test.ts` (before the closing `});` of the outer `describ
 
   it("honors PROXMOX_VM_SSH_USER and PROXMOX_VM_SSH_KEY when set", () => {
     const cfg = resolveConfig({
-      PROXMOX_URL: "https://pve.local:8006",
+      PROXMOX_URL: "https://proxmox.example.com:8006",
       PROXMOX_TOKEN_ID: "u@pam!t",
       PROXMOX_TOKEN_SECRET: "s",
       PROXMOX_SSH_USER: "claude",

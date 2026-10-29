@@ -1,7 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import type { ClientFactory } from "./_util.ts";
 import { jsonToolResult, validateToolArgs, ToolInputError } from "./_util.ts";
-import { assertConfirmedWrite } from "../gates.ts";
+import { assertConfirmedWrite, assertEnvFlag } from "../gates.ts";
 
 // ACL path like "/", "/vms/100", "/pool/x", "/storage/local".
 const ACL_PATH_RE = /^\/[\w./-]*$/;
@@ -33,6 +33,7 @@ export function createProxmoxSetAclTool(getClient: ClientFactory) {
     parameters: Schema,
     execute: async (_id: string, raw: Record<string, unknown>) => {
       assertConfirmedWrite(raw, NAME);
+      assertEnvFlag("PROXMOX_ENABLE_IDENTITY_PROVISIONING", NAME);
       const args = validateToolArgs<{
         path: string;
         roles: string;

@@ -132,7 +132,7 @@ Generated from [`docs/assets/workflows/proxmox-safety.json`](docs/assets/workflo
 | `proxmox_resume_resource` | 2 safe-write | Resume a suspended guest. Requires `confirm: true`. |
 | `proxmox_reset_resource` | 2 safe-write | Hard-reset a QEMU VM (reset button; no graceful shutdown). Requires `confirm: true`. |
 | `proxmox_convert_to_template` | 2 safe-write | Convert a stopped guest into a clone template (one-way). Requires `confirm: true`. |
-| `proxmox_download_url` | 2 safe-write | Download an ISO or container template from a URL onto a storage. Requires `confirm: true`. |
+| `proxmox_download_url` | 2 safe-write | Download an image from an approved HTTPS origin. Requires `confirm: true` and operator-enforced remote egress policy. |
 | `proxmox_cancel_task` | 2 safe-write | Stop a running task by UPID (abort a stuck migration/backup). Requires `confirm: true`. |
 | `proxmox_add_firewall_rule` | 2 safe-write | Add a firewall rule at cluster/node/guest scope. Requires `confirm: true`. |
 | `proxmox_delete_firewall_rule` | 2 safe-write | Delete a firewall rule by position at a scope. Requires `confirm: true`. |
@@ -141,8 +141,8 @@ Generated from [`docs/assets/workflows/proxmox-safety.json`](docs/assets/workflo
 | `proxmox_create_storage` | 2 safe-write | Define a new datacenter storage (dir/nfs/lvm/pbs/etc). Requires `confirm: true`. |
 | `proxmox_create_backup_job` | 2 safe-write | Create a scheduled vzdump backup job. Requires `confirm: true`. |
 | `proxmox_delete_backup_job` | 2 safe-write | Delete a scheduled backup job (archives untouched). Requires `confirm: true`. |
-| `proxmox_set_acl` | 2 safe-write | Grant or revoke a role for a user/token/group on a path. Requires `confirm: true`. |
-| `proxmox_create_token` | 2 safe-write | Create an API token; returns the secret once. Requires `confirm: true`. |
+| `proxmox_set_acl` | 2 safe-write | Grant or revoke a role for a user/token/group on a path. Requires `confirm: true` and identity provisioning enabled. |
+| `proxmox_create_token` | 2 safe-write | Create an API token and stream its secret to a protected credential consumer. Requires `confirm: true` and identity provisioning enabled. |
 | `proxmox_delete_token` | 2 safe-write | Revoke an API token. Requires `confirm: true`. |
 | `proxmox_create_pool` | 2 safe-write | Create a resource pool. Requires `confirm: true`. |
 | `proxmox_update_pool` | 2 safe-write | Add/remove guests or storage in a pool. Requires `confirm: true`. |
@@ -245,7 +245,7 @@ Requirements and caveats:
 
 ### In-container exec env vars
 
-The `proxmox_exec`, `proxmox_read_file`, and `proxmox_write_file` tools SSH to the Proxmox host (for LXC, via `pct exec`) or directly to the VM (for QEMU). All are optional; defaults derive from `PROXMOX_URL`.
+The `proxmox_exec`, `proxmox_read_file`, and `proxmox_write_file` tools SSH to the Proxmox host (for LXC, via `pct exec`) or directly to the VM (for QEMU). SSH connection defaults derive from `PROXMOX_URL`. Trusted host-key fingerprints are required for each SSH target.
 
 | Env var | Default | Purpose |
 | --- | --- | --- |
@@ -253,6 +253,8 @@ The `proxmox_exec`, `proxmox_read_file`, and `proxmox_write_file` tools SSH to t
 | `PROXMOX_SSH_PORT` | `22` | SSH port |
 | `PROXMOX_SSH_USER` | `root` | SSH user on Proxmox host |
 | `PROXMOX_SSH_KEY` | `~/.ssh/id_ed25519` | Key path for Proxmox host SSH |
+| `PROXMOX_SSH_HOST_FINGERPRINT` | unset, SSH denied | Trusted OpenSSH SHA256 fingerprint for the hypervisor |
+| `PROXMOX_VM_<vmid>_SSH_HOST_FINGERPRINT` | unset, guest SSH denied | Trusted OpenSSH SHA256 fingerprint for this guest |
 | `PROXMOX_VM_SSH_USER` | falls through to `PROXMOX_SSH_USER` | Default user for direct VM SSH |
 | `PROXMOX_VM_SSH_KEY` | falls through to `PROXMOX_SSH_KEY` | Default key for direct VM SSH |
 | `PROXMOX_SSH_MAX_OUTPUT_BYTES` | `1048576` | Max stdout bytes and max stderr bytes captured per SSH command |
@@ -294,10 +296,12 @@ proxmoxctl snapshots list 100
 proxmoxctl audit-permissions
 proxmoxctl recent-tasks --limit 20
 proxmoxctl task status UPID:pve:...
-proxmoxctl vms list --json              # raw JSON for piping
+proxmoxctl vms list --json              # redacted JSON for piping
 ```
 
-Run `proxmoxctl help` for the full command list. `--json` emits raw JSON instead of the concise summary. Exit codes: `0` success, `1` runtime error (backend unreachable / call failed, and `status` when a node is offline), `2` usage error (unknown command/flag or bad value).
+Run `proxmoxctl help` for the full command list. `--json` emits parseable, redacted JSON with a fixed `_external_data_notice`. Configured token IDs, token secrets, and authorization headers are masked in keys and values. Read results and runtime errors are untrusted Proxmox data. Human output uses fixed delimiters, and both formats escape upstream terminal controls and delimiter characters.
+
+Each output is limited to 64 KiB including its final newline. Oversized JSON becomes a notice with `truncated: true`, while human output includes `[truncated]`. Exit codes: `0` success, `1` runtime error (backend unreachable / call failed, and `status` when a node is offline), `2` usage error (unknown command/flag or bad value).
 
 ### Starting the MCP server
 
@@ -623,3 +627,25 @@ MIT. See [LICENSE](LICENSE).
 <p align="center"><sub><strong>Homelab:</strong> <a href="https://github.com/lidless-labs/adguardctrl">adguardctrl</a> &middot; <a href="https://github.com/lidless-labs/immichctrl">immichctrl</a> &middot; <a href="https://github.com/lidless-labs/jellyctrl">jellyctrl</a> &middot; <a href="https://github.com/lidless-labs/proxguard">proxguard</a></sub></p>
 
 <p align="center"><sub><a href="https://lidless.dev">All tools</a> &middot; <a href="https://github.com/lidless-labs">Lidless Labs on GitHub</a></sub></p>
+
+### SSH host identity
+
+SSH commands fail closed unless a trusted OpenSSH SHA256 host-key fingerprint is configured. Set `PROXMOX_SSH_HOST_FINGERPRINT=SHA256:<base64-digest>` for the hypervisor and `PROXMOX_VM_<vmid>_SSH_HOST_FINGERPRINT` for each QEMU guest. Obtain these fingerprints through an independently trusted operator channel. An IP returned by the guest agent does not establish host identity. Missing, malformed, or mismatched pins prevent SSH authentication. Read-only API tools do not require SSH pins.
+
+### API response limits
+
+Both HTTP transports enforce a 30-second deadline through completion of the response body and a 2 MiB response cap, including error responses. API redirects are refused. Only GET requests may be retried automatically. A failed mutation may already have taken effect, so inspect its state before retrying.
+
+### Identity provisioning
+
+Token creation and ACL mutation are disabled by default. Both require `PROXMOX_ENABLE_IDENTITY_PROVISIONING=1` in addition to `confirm:true`. Token creation also requires `PROXMOX_TOKEN_CONSUMER`, an absolute executable path owned by the process user or root with no group or other write access. Token creation requires Linux with `/proc` mounted. Preflight opens the executable without following a final symlink and validates that inode. Delivery executes the same inode through inherited descriptor 3, including for shebang scripts, so replacing the configured path cannot redirect the credential. The descriptor is closed on API and delivery failures as well as success. Root, the process user, and the consumer interpreter and its dependencies remain trusted: they can change the executable contents or process environment. File permissions alone do not prevent renaming or replacing its pathname. The executable receives one JSON object on stdin with `userid`, `tokenid`, `full_tokenid`, and `secret`. It must store the credential in its protected credential store and exit zero only after acceptance. Its stdout and stderr are discarded, and delivery has a 10-second deadline. No shell or intermediate credential file is used. If delivery fails after creation, inspect and revoke the token before retrying.
+
+### Image download egress
+
+`proxmox_download_url` is disabled unless `PROXMOX_DOWNLOAD_EGRESS_ENFORCED=1` and `PROXMOX_DOWNLOAD_ALLOWED_ORIGINS` contains the source's exact HTTPS origin, for example `https://images.example.com`. No wildcard or suffix matching is used. URLs with credentials, fragments, IP literals, alternate ports, or local hostnames are rejected. Source certificate verification is mandatory.
+
+Proxmox performs the image fetch remotely. Before enabling dispatch, the operator must enforce destination-address restrictions and redirect policy at the hypervisor's fetch boundary, using a controlled egress proxy or equivalent network policy. That policy must cover DNS rebinding, all redirect hops, and private, loopback, link-local, and metadata destinations. The MCP server does not resolve or preflight the source URL and cannot verify remote DNS or redirect behavior. The environment flag records operator configuration, not proof of enforcement. Keep this feature disabled until those controls exist.
+
+### Result trust
+
+Every result leaving the MCP and OpenClaw adapters includes an untrusted-data notice and the metadata key `proxmox-mcp/trust: untrusted`. Machine-readable JSON stays in the first content block. Proxmox names, descriptions, logs, errors, and guest output can contain attacker-written instructions. The notice identifies their source boundary. It is not a sandbox or a guarantee that a model will ignore those instructions.

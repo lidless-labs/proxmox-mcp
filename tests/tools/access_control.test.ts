@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { startFakeProxmox, FakeProxmox } from "../fake-proxmox.ts";
 import { ProxmoxClient } from "../../src/proxmox-client.ts";
 import {
@@ -45,6 +45,8 @@ describe("access reads", () => {
 });
 
 describe("set_acl", () => {
+  beforeEach(() => vi.stubEnv("PROXMOX_ENABLE_IDENTITY_PROVISIONING", "1"));
+  afterEach(() => vi.unstubAllEnvs());
   it("refuses without confirm", async () => {
     fake = await startFakeProxmox([]);
     await expect(createProxmoxSetAclTool(client).execute("t", { path: "/vms/100", roles: "PVEVMAdmin", userid: "bob@pve" })).rejects.toThrow(WriteGateError);
@@ -71,19 +73,6 @@ describe("set_acl", () => {
 });
 
 describe("tokens", () => {
-  it("create_token returns the secret once", async () => {
-    fake = await startFakeProxmox([
-      { method: "POST", path: "/api2/json/access/users/" + encodeURIComponent("automation@pve") + "/token/ci", status: 200,
-        body: { data: { "full-tokenid": "automation@pve!ci", value: "s3cr3t-uuid" } } },
-    ]);
-    const r = await createProxmoxCreateTokenTool(client).execute("t", { userid: "automation@pve", tokenid: "ci", confirm: true });
-    const p = JSON.parse(r.content[0].text);
-    expect(p.full_tokenid).toBe("automation@pve!ci");
-    expect(p.secret).toBe("s3cr3t-uuid");
-    const post = fake.requests.find((q) => q.method === "POST");
-    expect(new URLSearchParams(post?.body ?? "").get("privsep")).toBe("1");
-  });
-
   it("delete_token DELETEs", async () => {
     fake = await startFakeProxmox([
       { method: "DELETE", path: "/api2/json/access/users/" + encodeURIComponent("automation@pve") + "/token/ci", status: 200, body: { data: null } },

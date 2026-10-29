@@ -1,8 +1,11 @@
 import { Type } from "@sinclair/typebox";
 import type { ClientFactory } from "./_util.ts";
 import { jsonToolResult, validateToolArgs, ToolInputError } from "./_util.ts";
-import { assertConfirmedWrite } from "../gates.ts";
+import { assertConfirmedWrite, assertEnvFlag } from "../gates.ts";
 import { USERID_RE } from "./proxmox_list_tokens.ts";
+
+import { registerSecret } from "../security.ts";
+import { resolveTokenConsumer, deliverToken } from "../token-consumer.ts";
 
 const TOKENID_RE = /^[\w.-]+$/;
 
@@ -33,10 +36,11 @@ export function createProxmoxCreateTokenTool(getClient: ClientFactory) {
     name: NAME,
     label: "proxmox: create token",
     description:
-      "Create an API token for a user (POST /access/users/{userid}/token/{tokenid}). Returns the secret ONCE - it cannot be retrieved later. With privsep (default), grant it access separately via proxmox_set_acl. Tier-2 write; requires confirm:true.",
+      "Create an API token for a user (POST /access/users/{userid}/token/{tokenid}). Streams the one-time secret to the operator-configured credential consumer. Requires PROXMOX_ENABLE_IDENTITY_PROVISIONING=1 and PROXMOX_TOKEN_CONSUMER. The secret is never returned. With privsep (default), grant it access separately via proxmox_set_acl. Tier-2 write; requires confirm:true.",
     parameters: Schema,
     execute: async (_id: string, raw: Record<string, unknown>) => {
       assertConfirmedWrite(raw, NAME);
+      assertEnvFlag("PROXMOX_ENABLE_IDENTITY_PROVISIONING", NAME);
       const args = validateToolArgs<{
         userid: string;
         tokenid: string;
@@ -50,17 +54,36 @@ export function createProxmoxCreateTokenTool(getClient: ClientFactory) {
       const body: Record<string, unknown> = { privsep: args.privsep === false ? 0 : 1 };
       if (typeof args.comment === "string" && args.comment.length > 0) body.comment = args.comment;
       if (typeof args.expire === "number") body.expire = args.expire;
-      const res = await getClient().post<CreateTokenResult>(
-        `/access/users/${encodeURIComponent(args.userid)}/token/${encodeURIComponent(args.tokenid)}`,
-        body,
-      );
-      return jsonToolResult({
-        userid: args.userid,
-        tokenid: args.tokenid,
-        full_tokenid: res?.["full-tokenid"] ?? `${args.userid}!${args.tokenid}`,
-        secret: res?.value ?? null,
-        note: "Store the secret now; Proxmox will not show it again.",
-      });
+      const consumer = await resolveTokenConsumer();
+      try {
+        let res: CreateTokenResult;
+        try {
+          res = await getClient().post<CreateTokenResult>(
+            `/access/users/${encodeURIComponent(args.userid)}/token/${encodeURIComponent(args.tokenid)}`,
+            body,
+          );
+        } catch {
+          // A generated credential in an error/parse fragment is not registered yet.
+          // Never attach the upstream exception or replay an uncertain token creation.
+          throw new Error("Token creation outcome is unknown. Inspect token state and revoke any created token before retrying provisioning.");
+        }
+        if (typeof res?.value !== "string" || !res.value) {
+          throw new Error("Token creation returned no credential. Inspect token state before retrying provisioning.");
+        }
+        const fullTokenId = res["full-tokenid"] ?? `${args.userid}!${args.tokenid}`;
+        registerSecret(res.value);
+        registerSecret(fullTokenId);
+        registerSecret(`PVEAPIToken=${fullTokenId}=${res.value}`);
+        await deliverToken(consumer, { userid: args.userid, tokenid: args.tokenid, full_tokenid: fullTokenId, secret: res.value });
+        return jsonToolResult({
+          userid: args.userid,
+          tokenid: args.tokenid,
+          delivered: true,
+          note: "The credential consumer accepted the token. The secret is not returned.",
+        });
+      } finally {
+        await consumer.close();
+      }
     },
   };
 }

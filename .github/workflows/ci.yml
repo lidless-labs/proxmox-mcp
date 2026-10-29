@@ -16,17 +16,24 @@ on:
       - '.gitignore'
     branches: [master]
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20, 22]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: ${{ matrix.node-version }}
+          # OpenClaw 2026.8.35 development/plugin floor.
+          node-version: '22.22.3'
           cache: npm
       - run: npm ci
       - run: ./scripts/verify
+      - name: Use Node 20 for standalone package compatibility
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20.20.2'
+      - name: Smoke packed CLI and MCP without OpenClaw
+        run: node scripts/standalone-smoke.mjs
