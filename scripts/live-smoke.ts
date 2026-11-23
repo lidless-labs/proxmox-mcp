@@ -304,7 +304,7 @@ async function runSnapshotRollbackSmoke(
 ) {
   if (process.env.PROXMOX_SMOKE_SNAPSHOT_ROLLBACK !== "1") return false;
   const snapname = `mcp_smoke_${Date.now()}`;
-  const marker = "/root/mcp-smoke-rollback-marker";
+  const marker = "/var/lib/mcp-smoke-rollback-marker";
   let snapCreated = false;
   let running = true;
   try {

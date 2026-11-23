@@ -4,11 +4,11 @@ import { resolveConfig, ConfigError } from "../src/config.ts";
 describe("resolveConfig", () => {
   it("parses required env", () => {
     const cfg = resolveConfig({
-      PROXMOX_URL: "https://pve.local:8006",
+      PROXMOX_URL: "https://pve.example.com:8006",
       PROXMOX_TOKEN_ID: "u@pam!t1",
       PROXMOX_TOKEN_SECRET: "secret-uuid",
     });
-    expect(cfg.url).toBe("https://pve.local:8006");
+    expect(cfg.url).toBe("https://pve.example.com:8006");
     expect(cfg.tokenId).toBe("u@pam!t1");
     expect(cfg.tokenSecret).toBe("secret-uuid");
     expect(cfg.tlsInsecure).toBe(false);
@@ -52,11 +52,11 @@ describe("resolveConfig", () => {
 
   it("strips trailing slash from PROXMOX_URL", () => {
     const cfg = resolveConfig({
-      PROXMOX_URL: "https://pve.local:8006/",
+      PROXMOX_URL: "https://pve.example.com:8006/",
       PROXMOX_TOKEN_ID: "u@pam!t",
       PROXMOX_TOKEN_SECRET: "s",
     });
-    expect(cfg.url).toBe("https://pve.local:8006");
+    expect(cfg.url).toBe("https://pve.example.com:8006");
   });
 
   it("resolves ssh defaults from PROXMOX_URL hostname when PROXMOX_SSH_HOST not set", () => {
@@ -75,7 +75,7 @@ describe("resolveConfig", () => {
 
   it("honors explicit PROXMOX_SSH_* env vars", () => {
     const cfg = resolveConfig({
-      PROXMOX_URL: "https://pve.local:8006",
+      PROXMOX_URL: "https://pve.example.com:8006",
       PROXMOX_TOKEN_ID: "u@pam!t",
       PROXMOX_TOKEN_SECRET: "s",
       PROXMOX_SSH_HOST: "192.0.2.10",
@@ -91,7 +91,7 @@ describe("resolveConfig", () => {
 
   it("falls VM SSH user/key through to host SSH user/key when VM-specific not set", () => {
     const cfg = resolveConfig({
-      PROXMOX_URL: "https://pve.local:8006",
+      PROXMOX_URL: "https://pve.example.com:8006",
       PROXMOX_TOKEN_ID: "u@pam!t",
       PROXMOX_TOKEN_SECRET: "s",
       PROXMOX_SSH_USER: "claude",
@@ -103,7 +103,7 @@ describe("resolveConfig", () => {
 
   it("honors PROXMOX_VM_SSH_USER and PROXMOX_VM_SSH_KEY when set", () => {
     const cfg = resolveConfig({
-      PROXMOX_URL: "https://pve.local:8006",
+      PROXMOX_URL: "https://pve.example.com:8006",
       PROXMOX_TOKEN_ID: "u@pam!t",
       PROXMOX_TOKEN_SECRET: "s",
       PROXMOX_SSH_USER: "claude",
