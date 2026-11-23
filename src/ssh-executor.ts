@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { Client } from "ssh2";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -7,6 +8,7 @@ export interface SshHostConfig {
   port: number;
   user: string;
   keyPath: string;
+  hostFingerprint?: string;
 }
 
 export interface ExecResult {
@@ -71,6 +73,11 @@ async function runOverSsh(
   timeoutMs: number,
   stdin?: string,
 ): Promise<ExecResult> {
+  // Pins must be obtained through an independent trusted channel, never TOFU.
+  if (!cfg.hostFingerprint || !/^SHA256:[A-Za-z0-9+/]{43}$/.test(cfg.hostFingerprint)) {
+    throw new SshExecError("connect", "a trusted SHA256 host fingerprint is required");
+  }
+  const trustedKeyHash = Buffer.from(cfg.hostFingerprint.slice(7), "base64");
   const key = await loadKey(cfg.keyPath);
   const maxOutputBytes = resolveMaxOutputBytes();
   return new Promise<ExecResult>((resolve, reject) => {
@@ -152,6 +159,7 @@ async function runOverSsh(
       username: cfg.user,
       privateKey: key,
       readyTimeout: timeoutMs,
+      hostVerifier: (hostKey: Buffer) => timingSafeEqual(createHash("sha256").update(hostKey).digest(), trustedKeyHash),
     });
   });
 }

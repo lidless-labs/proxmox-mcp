@@ -304,7 +304,7 @@ async function runSnapshotRollbackSmoke(
 ) {
   if (process.env.PROXMOX_SMOKE_SNAPSHOT_ROLLBACK !== "1") return false;
   const snapname = `mcp_smoke_${Date.now()}`;
-  const marker = "/root/mcp-smoke-rollback-marker";
+  const marker = "/var/lib/mcp-smoke-rollback-marker";
   let snapCreated = false;
   let running = true;
   try {
@@ -399,7 +399,7 @@ async function main() {
 
   const cfg = resolveConfig(process.env);
   const getClient = () => new ProxmoxClient(cfg, { retryDelayMs: 100 });
-  const hostCfg = { host: cfg.ssh.host, port: cfg.ssh.port, user: cfg.ssh.user, keyPath: cfg.ssh.keyPath };
+  const hostCfg = { host: cfg.ssh.host, port: cfg.ssh.port, user: cfg.ssh.user, hostFingerprint: cfg.ssh.hostFingerprint, keyPath: cfg.ssh.keyPath };
   const getSsh = (): SshExecutor => ({
     execInLxc: (vmid, command, timeoutMs, stdin) => execInLxc(hostCfg, vmid, command, timeoutMs, stdin),
     execViaDirectSsh: (target, command, timeoutMs, stdin) => execViaDirectSsh(target, command, timeoutMs, stdin),

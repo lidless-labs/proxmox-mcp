@@ -54,7 +54,7 @@ export default definePluginEntry({
     if (api.registrationMode !== "full") return;
     const cfg = resolveConfig(process.env);
     const getClient = makeFactory(cfg);
-    const hostCfg = { host: cfg.ssh.host, port: cfg.ssh.port, user: cfg.ssh.user, keyPath: cfg.ssh.keyPath };
+    const hostCfg = { host: cfg.ssh.host, port: cfg.ssh.port, user: cfg.ssh.user, hostFingerprint: cfg.ssh.hostFingerprint, keyPath: cfg.ssh.keyPath };
     const getSsh = (): SshExecutor => ({
       execInLxc: (vmid, command, timeoutMs, stdin) => execInLxc(hostCfg, vmid, command, timeoutMs, stdin),
       execViaDirectSsh: (target, command, timeoutMs, stdin) => execViaDirectSsh(target, command, timeoutMs, stdin),

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { startFakeProxmox, FakeProxmox } from "../fake-proxmox.ts";
 import { ProxmoxClient } from "../../src/proxmox-client.ts";
 import {
@@ -14,6 +14,36 @@ afterEach(async () => { if (fake) await fake.close(); fake = null; });
 const client = () => new ProxmoxClient({ url: fake!.baseUrl, tokenId: "u@pam!t", tokenSecret: "s", tlsInsecure: false });
 
 describe("storage plane tools", () => {
+  beforeEach(() => {
+    vi.stubEnv("PROXMOX_DOWNLOAD_ALLOWED_ORIGINS", "https://images.example.com");
+    vi.stubEnv("PROXMOX_DOWNLOAD_EGRESS_ENFORCED", "1");
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("denies download dispatch until remote egress enforcement is configured", async () => {
+    vi.stubEnv("PROXMOX_DOWNLOAD_EGRESS_ENFORCED", "");
+    fake = await startFakeProxmox([]);
+    await expect(createProxmoxDownloadUrlTool(client).execute("t", { node: "pve", storage: "local", content: "iso", url: "https://images.example.com/y.iso", filename: "y.iso", confirm: true })).rejects.toThrow(/egress/i);
+    expect(fake.requests).toHaveLength(0);
+  });
+
+  it.each([
+    "http://images.example.com/y.iso", "https://unapproved.example.com/y.iso",
+    "https://images.example.com.evil.example/y.iso", "https://images.example.com:8443/y.iso",
+    "https://user:password@images.example.com/y.iso", "https://images.example.com/y.iso#fragment",
+    "https://127.0.0.1/y.iso", "https://2130706433/y.iso", "https://[::1]/y.iso",
+    "https://[::ffff:127.0.0.1]/y.iso", "https://169.254.169.254/y.iso", "https://localhost/y.iso",
+  ])("rejects unapproved source %s without network", async (url) => {
+    fake = await startFakeProxmox([]);
+    await expect(createProxmoxDownloadUrlTool(client).execute("t", { node: "pve", storage: "local", content: "iso", url, filename: "y.iso", confirm: true })).rejects.toThrow(ToolInputError);
+    expect(fake.requests).toHaveLength(0);
+  });
+
+  it("rejects disabling source TLS verification", async () => {
+    fake = await startFakeProxmox([]);
+    await expect(createProxmoxDownloadUrlTool(client).execute("t", { node: "pve", storage: "local", content: "iso", url: "https://images.example.com/y.iso", filename: "y.iso", verify_certificates: false, confirm: true })).rejects.toThrow(/certificate/i);
+    expect(fake.requests).toHaveLength(0);
+  });
   it("list_storage_content reads and filters by content type", async () => {
     fake = await startFakeProxmox([
       { method: "GET", path: "/api2/json/nodes/pve/storage/local/content?content=backup", status: 200,
@@ -33,14 +63,14 @@ describe("storage plane tools", () => {
   it("download_url refuses without confirm", async () => {
     fake = await startFakeProxmox([]);
     await expect(
-      createProxmoxDownloadUrlTool(client).execute("t", { node: "pve", storage: "local", content: "iso", url: "https://x/y.iso", filename: "y.iso" }),
+      createProxmoxDownloadUrlTool(client).execute("t", { node: "pve", storage: "local", content: "iso", url: "https://images.example.com/y.iso", filename: "y.iso" }),
     ).rejects.toThrow(WriteGateError);
   });
 
   it("download_url requires checksum_algorithm when checksum set", async () => {
     fake = await startFakeProxmox([]);
     await expect(
-      createProxmoxDownloadUrlTool(client).execute("t", { node: "pve", storage: "local", content: "iso", url: "https://x/y.iso", filename: "y.iso", checksum: "abc", confirm: true }),
+      createProxmoxDownloadUrlTool(client).execute("t", { node: "pve", storage: "local", content: "iso", url: "https://images.example.com/y.iso", filename: "y.iso", checksum: "abc", confirm: true }),
     ).rejects.toThrow(ToolInputError);
   });
 
@@ -49,13 +79,13 @@ describe("storage plane tools", () => {
       { method: "POST", path: "/api2/json/nodes/pve/storage/local/download-url", status: 200, body: { data: "UPID:pve:dl" } },
     ]);
     await createProxmoxDownloadUrlTool(client).execute("t", {
-      node: "pve", storage: "local", content: "vztmpl", url: "https://x/y.tar.zst", filename: "y.tar.zst",
-      checksum: "deadbeef", checksum_algorithm: "sha256", verify_certificates: false, confirm: true,
+      node: "pve", storage: "local", content: "vztmpl", url: "https://images.example.com/y.tar.zst", filename: "y.tar.zst",
+      checksum: "deadbeef", checksum_algorithm: "sha256", verify_certificates: true, confirm: true,
     });
     const post = fake.requests.find((q) => q.method === "POST");
     expect(Object.fromEntries(new URLSearchParams(post?.body ?? ""))).toEqual({
-      content: "vztmpl", url: "https://x/y.tar.zst", filename: "y.tar.zst",
-      checksum: "deadbeef", "checksum-algorithm": "sha256", "verify-certificates": "0",
+      content: "vztmpl", url: "https://images.example.com/y.tar.zst", filename: "y.tar.zst",
+      checksum: "deadbeef", "checksum-algorithm": "sha256", "verify-certificates": "1",
     });
   });
 

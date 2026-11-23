@@ -1,5 +1,5 @@
 import { WriteGateError } from "./gates.ts";
-import { ProxmoxClientError, ProxmoxUnreachableError } from "./proxmox-client.ts";
+import { ProxmoxClientError, ProxmoxUnreachableError, ProxmoxWriteOutcomeUnknownError } from "./proxmox-client.ts";
 import { SshExecError } from "./ssh-executor.ts";
 import { ToolInputError } from "./tools/_util.ts";
 import { redact } from "./security.ts";
@@ -42,6 +42,9 @@ function classifyUnbounded(error: unknown): ToolErrorPayload {
   }
   if (err instanceof ProxmoxClientError) {
     return { error: err.message, code: `PROXMOX_HTTP_${err.status}`, name: err.name, status: err.status };
+  }
+  if (err instanceof ProxmoxWriteOutcomeUnknownError) {
+    return { error: err.message, code: "PROXMOX_WRITE_OUTCOME_UNKNOWN", name: err.name };
   }
   if (err instanceof ProxmoxUnreachableError) {
     return { error: err.message, code: "PROXMOX_UNREACHABLE", name: err.name };

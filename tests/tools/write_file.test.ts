@@ -89,7 +89,7 @@ describe("proxmox_write_file", () => {
       execViaDirectSsh: vi.fn(),
     };
     await expect(
-      makeTool(ssh).execute("t", { vmid: 109, path: "/root/x", content: "x", confirm: true }),
+      makeTool(ssh).execute("t", { vmid: 109, path: "/var/lib/mcp-smoke-example", content: "x", confirm: true }),
     ).rejects.toThrow(/permission denied/);
   });
 
